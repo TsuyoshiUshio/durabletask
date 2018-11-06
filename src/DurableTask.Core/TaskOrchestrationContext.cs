@@ -341,6 +341,9 @@ namespace DurableTask.Core
                 var taskFailedException = new TaskFailedException(failedEvent.EventId, taskId, info.Name, info.Version,
                     failedEvent.Reason, cause);
 
+                // correlation 
+                CorrelationTraceClient.TrackException(taskFailedException);
+
                 TaskCompletionSource<string> tcs = info.Result;
                 tcs.SetException(taskFailedException);
 

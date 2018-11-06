@@ -11,10 +11,21 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-using System.Runtime.CompilerServices;
+namespace Correlation.Samples
+{
+    using System;
 
-#if !SIGN_ASSEMBLY
-[assembly: InternalsVisibleTo("DurableTask.Core.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.Framework.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.ServiceBus.Tests")]
-#endif
+    public class Program
+    {
+        static void Main(string[] args)
+        {
+            // Add CI change with new config with debug
+            // new HelloWorldScenario().ExecuteAsync().GetAwaiter().GetResult(); // basic sample
+            new MultiLayerOrchestrationWithRetryScenario().ExecuteAsync().GetAwaiter().GetResult(); // complex sample
+            // new ContinueAsNewScenario().ExecuteAsync().GetAwaiter().GetResult();
+            // new TerminationScenario().ExecuteAsync().GetAwaiter().GetResult();
+            Console.WriteLine("Orchestration is successfully finished.");
+            Console.ReadLine();
+        }
+    }
+}

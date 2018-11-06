@@ -15,6 +15,7 @@ namespace DurableTask.Core
 {
     using System;
     using System.Diagnostics;
+    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
     using DurableTask.Core.Common;
@@ -130,6 +131,9 @@ namespace DurableTask.Core
 
                 await this.dispatchPipeline.RunAsync(dispatchContext, async _ =>
                 {
+                    // correlation 
+                    workItem.TraceContextBase?.SetActivityToCurrent();
+
                     try
                     {
                         string output = await taskActivity.RunAsync(context, scheduledEvent.Input);
@@ -140,6 +144,7 @@ namespace DurableTask.Core
                         TraceHelper.TraceExceptionInstance(TraceEventType.Error, "TaskActivityDispatcher-ProcessTaskFailure", taskMessage.OrchestrationInstance, e);
                         string details = IncludeDetails ? e.Details : null;
                         eventToRespond = new TaskFailedEvent(-1, scheduledEvent.EventId, e.Message, details);
+                        CorrelationTraceClient.TrackException(e);
                     }
                     catch (Exception e) when (!Utils.IsFatal(e))
                     {

@@ -11,10 +11,22 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-using System.Runtime.CompilerServices;
+namespace Correlation.Samples
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using DurableTask.Core;
+    using Microsoft.ApplicationInsights.DataContracts;
 
-#if !SIGN_ASSEMBLY
-[assembly: InternalsVisibleTo("DurableTask.Core.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.Framework.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.ServiceBus.Tests")]
-#endif
+    public static class CorrelatedExceptionExtensions
+    {
+        public static ExceptionTelemetry CreateExceptionTelemetry(this CorrelatedException e)
+        {
+            var exceptionTelemetry = new ExceptionTelemetry(e.Exception);
+            exceptionTelemetry.Context.Operation.Id = e.OperationId;
+            exceptionTelemetry.Context.Operation.ParentId = e.ParentId;
+            return exceptionTelemetry;
+        }
+    }
+}

@@ -162,5 +162,17 @@ namespace DurableTask.Core
         /// The default batch flush interval in milliseconds seconds
         /// </summary>
         public const int BatchFlushIntervalInMilliSecs = 100;
+
+        /// <summary>
+        /// The default protocol of Distributed Tracing
+        /// W3C TraceContext
+        /// </summary>
+        public const string CorrelationProtocolW3CTraceContext = "W3C";
+
+        /// <summary>
+        /// The protocol of Distributed Tracing
+        /// HTTP Correlation Protocol
+        /// </summary>
+        public const string CorrelationProtocolHTTPCorrelationProtocol = "HTTP";
     }
 }

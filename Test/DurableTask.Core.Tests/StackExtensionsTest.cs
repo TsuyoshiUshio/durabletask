@@ -11,10 +11,30 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-using System.Runtime.CompilerServices;
+namespace DurableTask.Core.Tests
+{
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-#if !SIGN_ASSEMBLY
-[assembly: InternalsVisibleTo("DurableTask.Core.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.Framework.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.ServiceBus.Tests")]
-#endif
+    [TestClass]
+    public class StackExtensionsTest
+    {
+        [TestMethod]
+        public void CloneStack()
+        {
+            var input = new Stack<string>(); 
+            input.Push("1");
+            input.Push("2");
+            input.Push("3");
+            var result = input.Clone<string>();
+            Assert.AreEqual("3", result.Pop());
+            Assert.AreEqual("2", result.Pop());
+            Assert.AreEqual("1", result.Pop());
+        }
+    }
+}

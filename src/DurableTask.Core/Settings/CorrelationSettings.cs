@@ -11,34 +11,35 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-namespace DurableTask.Core
+namespace DurableTask.Core.Settings
 {
     using System;
-    using System.Diagnostics;
+    using System.Collections.Generic;
+    using System.Net.Sockets;
+    using System.Text;
 
     /// <summary>
-    /// An active instance / work item of a task activity
+    /// Settings for Distributed Tracing
     /// </summary>
-    public class TaskActivityWorkItem
+    public class CorrelationSettings
     {
         /// <summary>
-        /// The Id of the work work item, likely related to the task message
+        /// Create a new instance of the CorrelationSettings with default settings
         /// </summary>
-        public string Id;
+        public CorrelationSettings()
+        {
+            Protocol = FrameworkConstants.CorrelationProtocolW3CTraceContext;
+        }
 
         /// <summary>
-        /// The datetime this work item is locked until
+        /// Correlation Protocol
         /// </summary>
-        public DateTime LockedUntilUtc;
+        public string Protocol { get; set; }
 
         /// <summary>
-        /// The task message associated with this work item
+        /// Current Correlation Settings
+        /// TODO Need to discuss the design for referencing Settings from DurableTask.Core side.
         /// </summary>
-        public TaskMessage TaskMessage;
-
-        /// <summary>
-        /// The TraceContextBase which is included on the queue.
-        /// </summary>
-        public TraceContextBase TraceContextBase;
+        public static CorrelationSettings Current { get; set; } = new CorrelationSettings();
     }
 }

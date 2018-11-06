@@ -14,31 +14,40 @@
 namespace DurableTask.Core
 {
     using System;
-    using System.Diagnostics;
+    using System.Collections.Generic;
+    using System.Text;
 
     /// <summary>
-    /// An active instance / work item of a task activity
+    /// A class that includes an exception and correlation information for sending telemetry
     /// </summary>
-    public class TaskActivityWorkItem
+    public class CorrelatedException
     {
         /// <summary>
-        /// The Id of the work work item, likely related to the task message
+        /// Exception that is sent to E2E tracing system
         /// </summary>
-        public string Id;
+        public Exception Exception { get; set; }
 
         /// <summary>
-        /// The datetime this work item is locked until
+        /// OperationId is uniq id of end to end tracing
         /// </summary>
-        public DateTime LockedUntilUtc;
+        public string OperationId { get; set; }
 
         /// <summary>
-        /// The task message associated with this work item
+        /// ParentId is an id of an end to end tracing
         /// </summary>
-        public TaskMessage TaskMessage;
+        public string ParentId { get; set; }
 
         /// <summary>
-        /// The TraceContextBase which is included on the queue.
+        /// A constructor with mandatory parameters.
         /// </summary>
-        public TraceContextBase TraceContextBase;
+        /// <param name="exception">Exception</param> 
+        /// <param name="operationId">OperationId</param>
+        /// <param name="parentId">ParentId</param>
+        public CorrelatedException(Exception exception, string operationId, string parentId)
+        {
+            this.Exception = exception;
+            this.ParentId = parentId;
+            this.OperationId = operationId;
+        }
     }
 }

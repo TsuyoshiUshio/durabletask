@@ -45,6 +45,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DurableTask.Redis", "src\Du
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DurableTask.Redis.Tests", "Test\DurableTask.Redis.Tests\DurableTask.Redis.Tests.csproj", "{B1C3B554-A098-47F8-8FA9-C28B5BBF35B1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Correlation.Samples", "Correlation.Samples\Correlation.Samples.csproj", "{5F88FF6A-E908-4341-89D6-FA530793077A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Correlation.Sample.Tests", "Correlation.Sample.Tests\Correlation.Sample.Tests.csproj", "{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,6 +99,7 @@ Global
 		{7CD147F9-1BB9-41FD-A310-BCA07447A6B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CD147F9-1BB9-41FD-A310-BCA07447A6B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CD147F9-1BB9-41FD-A310-BCA07447A6B9}.Release|Any CPU.Build.0 = Release|Any CPU
+<<<<<<< HEAD
 		{BDA5B320-5282-49FE-B0A7-1F8A0F06862C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BDA5B320-5282-49FE-B0A7-1F8A0F06862C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDA5B320-5282-49FE-B0A7-1F8A0F06862C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -103,6 +108,16 @@ Global
 		{B1C3B554-A098-47F8-8FA9-C28B5BBF35B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1C3B554-A098-47F8-8FA9-C28B5BBF35B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1C3B554-A098-47F8-8FA9-C28B5BBF35B1}.Release|Any CPU.Build.0 = Release|Any CPU
+=======
+		{5F88FF6A-E908-4341-89D6-FA530793077A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F88FF6A-E908-4341-89D6-FA530793077A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F88FF6A-E908-4341-89D6-FA530793077A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F88FF6A-E908-4341-89D6-FA530793077A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}.Release|Any CPU.Build.0 = Release|Any CPU
+>>>>>>> Distributed Tracing
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,8 +134,13 @@ Global
 		{295A38D6-F8BF-446A-A274-E78BD1C56514} = {95C69A06-7F62-4652-A480-207B614C2869}
 		{F1B270EA-9DC2-4753-B3DE-B45D3C128FDB} = {DBCD161C-D409-48E5-924E-9B7FA1C36B84}
 		{7CD147F9-1BB9-41FD-A310-BCA07447A6B9} = {95C69A06-7F62-4652-A480-207B614C2869}
+<<<<<<< HEAD
 		{BDA5B320-5282-49FE-B0A7-1F8A0F06862C} = {DBCD161C-D409-48E5-924E-9B7FA1C36B84}
 		{B1C3B554-A098-47F8-8FA9-C28B5BBF35B1} = {95C69A06-7F62-4652-A480-207B614C2869}
+=======
+		{5F88FF6A-E908-4341-89D6-FA530793077A} = {AF4E71A6-B16E-4488-B22D-2761101A601A}
+		{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD} = {95C69A06-7F62-4652-A480-207B614C2869}
+>>>>>>> Distributed Tracing
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2D63A120-9394-48D9-8CA9-1184364FB854}

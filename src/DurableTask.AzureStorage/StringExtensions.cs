@@ -11,10 +11,27 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-using System.Runtime.CompilerServices;
+namespace DurableTask.AzureStorage
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
 
-#if !SIGN_ASSEMBLY
-[assembly: InternalsVisibleTo("DurableTask.Core.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.Framework.Tests")]
-[assembly: InternalsVisibleTo("DurableTask.ServiceBus.Tests")]
-#endif
+    /// <summary>
+    /// Extension methods for String
+    /// </summary>
+    public static class StringExtensions
+    {
+        /// <summary>
+        /// Get the ClassName part delimited by +
+        /// e.g. DurableTask.AzureStorage.Tests.Correlation.CorrelationScenarioTest+SayHelloActivity
+        /// should be "SayHelloActivity"
+        /// </summary>
+        /// <param name="s"></param>
+        public static string GetTargetClassName(this string s)
+        {
+            var index = s.IndexOf('+');
+            return s.Substring(index + 1, s.Length - index - 1);
+        }
+    }
+}

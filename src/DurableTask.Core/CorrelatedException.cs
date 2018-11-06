@@ -11,41 +11,43 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-using System.Diagnostics;
-
 namespace DurableTask.Core
 {
     using System;
+    using System.Collections.Generic;
+    using System.Text;
 
     /// <summary>
-    /// An active instance / work item of a task activity
+    /// A class that includes an exception and correlation information for sending telemetry
     /// </summary>
-    public class TaskActivityWorkItem
+    public class CorrelatedException
     {
         /// <summary>
-        /// The Id of the work work item, likely related to the task message
+        /// Exception that is sent to E2E tracing system
         /// </summary>
-        public string Id;
+        public Exception Exception { get; set; }
 
         /// <summary>
-        /// The datetime this work item is locked until
+        /// OperationId is uniq id of end to end tracing
         /// </summary>
-        public DateTime LockedUntilUtc;
+        public string OperationId { get; set; }
 
         /// <summary>
-        /// The task message associated with this work item
+        /// ParentId is an id of an end to end tracing
         /// </summary>
-        public TaskMessage TaskMessage;
+        public string ParentId { get; set; }
 
         /// <summary>
-        /// The current activity associated with this work item.
-        /// This is used for passing Activity Current from LockNextWorkItemAsync to CompleteActivityWorkItemAsync
+        /// A constructor with mandatory parameters.
         /// </summary>
-        public Activity CurrentActivity;
-
-        /// <summary>
-        /// The TraceContext which is included on the queue.
-        /// </summary>
-        public TraceContext ParentTraceContext;
+        /// <param name="exception">Exception</param> 
+        /// <param name="operationId">OperationId</param>
+        /// <param name="parentId">ParentId</param>
+        public CorrelatedException(Exception exception, string operationId, string parentId)
+        {
+            this.Exception = exception;
+            this.ParentId = parentId;
+            this.OperationId = operationId;
+        }
     }
 }

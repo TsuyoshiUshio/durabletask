@@ -189,6 +189,9 @@ namespace DurableTask.Core
             var isCompleted = false;
             var continuedAsNew = false;
             var isInterrupted = false;
+            
+            // correlation
+            CorrelationTraceContext.Current = workItem.TraceContext;
 
             ExecutionStartedEvent continueAsNewExecutionStarted = null;
             TaskMessage continuedAsNewMessage = null;

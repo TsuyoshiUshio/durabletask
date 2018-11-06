@@ -15,11 +15,13 @@ namespace DurableTask.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using DurableTask.Core.History;
     using DurableTask.Core.Serializing;
+    using Microsoft.ApplicationInsights.W3C;
 
     /// <summary>
     ///     Client used to manage and query orchestration instances
@@ -439,6 +441,20 @@ namespace DurableTask.Core
             string eventName,
             object eventData)
         {
+            Activity requestActivity = null;
+            // correlation 
+            if (Activity.Current == null)
+            {
+                requestActivity = new Activity($"{TraceMessages.Client}: {eventName}");
+#pragma warning disable 618
+                requestActivity.GenerateW3CContext();  // In case of W3C TraceContext
+                requestActivity.Start();
+            }
+            else
+            {
+                requestActivity = Activity.Current;
+            }
+
             if (string.IsNullOrWhiteSpace(orchestrationInstanceId))
             {
                 orchestrationInstanceId = Guid.NewGuid().ToString("N");
@@ -487,9 +503,19 @@ namespace DurableTask.Core
                 });
             }
 
+            // TODO Good place to add the dependency telemetry and track Activity.
+            var dependencyActivity = new Activity(TraceMessages.Client);
+            dependencyActivity.SetParentAndStartActivity(requestActivity);
+            var dependencyTraceContext = dependencyActivity.CreateTraceContext();
+            CorrelationTraceContext.Current = dependencyTraceContext;
+
             // Raised events and create orchestration calls use different methods so get handled separately
             await Task.WhenAll(taskMessages.Where(t => !(t.Event is EventRaisedEvent)).Select(sEvent => ServiceClient.CreateTaskOrchestrationAsync(sEvent, dedupeStatuses)));
             await ServiceClient.SendTaskOrchestrationMessageBatchAsync(taskMessages.Where(t => (t.Event is EventRaisedEvent)).ToArray());
+
+            // Correlation
+            CorrelationTraceClient.TrackRequestTelemetry(requestActivity);
+
             return orchestrationInstance;
         }
 

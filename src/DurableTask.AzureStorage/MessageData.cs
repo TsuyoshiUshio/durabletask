@@ -17,6 +17,7 @@ namespace DurableTask.AzureStorage
     using System.Runtime.Serialization;
     using DurableTask.Core;
     using Microsoft.WindowsAzure.Storage.Queue;
+    using System.Diagnostics;
 
     /// <summary>
     /// Protocol class for all Azure Queue messages.
@@ -64,6 +65,11 @@ namespace DurableTask.AzureStorage
         [DataMember]
         public long SequenceNumber { get; set; }
 
+        /// <summary>
+        /// TraceContext for correlation.
+        /// </summary>
+        public TraceContext TraceContext { get; set; }
+
         internal string Id => this.OriginalQueueMessage?.Id;
 
         internal string QueueName { get; set; }
@@ -91,4 +97,5 @@ namespace DurableTask.AzureStorage
         /// </summary>
         StorageBlob = 0b0001
     }
+
 }

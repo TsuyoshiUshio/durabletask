@@ -390,7 +390,7 @@ namespace DurableTask.Core
             dispatchContext.SetProperty(runtimeState.OrchestrationInstance);
             dispatchContext.SetProperty(taskOrchestration);
             dispatchContext.SetProperty(runtimeState);
-
+            // dispatchContext.SetPropery
             var executor = new TaskOrchestrationExecutor(runtimeState, taskOrchestration);
 
             IEnumerable<OrchestratorAction> decisions = null;

@@ -11,6 +11,8 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
+using System.Diagnostics;
+
 namespace DurableTask.Core
 {
     using System;
@@ -34,5 +36,11 @@ namespace DurableTask.Core
         /// The task message associated with this work item
         /// </summary>
         public TaskMessage TaskMessage;
+
+        /// <summary>
+        /// The current activity associated with this work item.
+        /// This is used for passing Activity Current from LockNextWorkItemAsync to CompleteActivityWorkItemAsync
+        /// </summary>
+        public Activity CurrentActivity;
     }
 }

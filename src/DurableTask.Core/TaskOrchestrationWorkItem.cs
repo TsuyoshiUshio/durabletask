@@ -11,6 +11,8 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
+using System.Diagnostics;
+
 namespace DurableTask.Core
 {
     using System;
@@ -46,6 +48,12 @@ namespace DurableTask.Core
         /// providers that intend to leverage extended sessions.
         /// </summary>
         public IOrchestrationSession Session;
+
+        /// <summary>
+        /// The correlation information for this work item. This is used for passing
+        /// Current Activity on the LockNext... to Complete...WorkItemAsync 
+        /// </summary>
+        public Activity CurrentActivity;
 
         internal OrchestrationExecutionCursor Cursor;
     }

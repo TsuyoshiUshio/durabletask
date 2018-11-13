@@ -10,6 +10,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
+#pragma warning disable 618
 
 namespace DurableTask.AzureStorage
 {
@@ -18,6 +19,7 @@ namespace DurableTask.AzureStorage
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
+    using DurableTask.Core;
     using Microsoft.ApplicationInsights.W3C;
 
     /// <summary>
@@ -25,6 +27,10 @@ namespace DurableTask.AzureStorage
     /// </summary>
     public static class MessageDataExtensions
     {
+        /// <summary>
+        /// SetupCausality
+        /// </summary>
+        /// <param name="message"></param>
         public static void SetupCausality(this MessageData message)
         {
             var currentActivity = Activity.Current;
@@ -42,7 +48,10 @@ namespace DurableTask.AzureStorage
                 message.SetTraceContext($"00-{traceId}-{spanId}-01", tracestate);
             }
         }
-
+        /// <summary>
+        /// UpdateActivity
+        /// </summary>
+        /// <param name="message"></param>
         public static void UpdateActivity(this MessageData message)
         {
             if (!string.IsNullOrEmpty(message.TraceContext?.Traceparent))
@@ -58,14 +67,23 @@ namespace DurableTask.AzureStorage
                 Activity.Current?.GenerateW3CContext();
             }
         }
-
+        /// <summary>
+        /// SetOwner
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="functionOwner"></param>
         public static void SetOwner(this MessageData message, Guid functionOwner)
         {
             var traceContext = message.TraceContext ?? new TraceContext();
             traceContext.ParentId = functionOwner.ToString();
             message.TraceContext = traceContext;
         }
-
+        /// <summary>
+        /// SetTraceContext
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="traceparent"></param>
+        /// <param name="tracestate"></param>
         public static void SetTraceContext(this MessageData message, string traceparent, string tracestate)
         {
             var traceContext = message.TraceContext ?? new TraceContext();

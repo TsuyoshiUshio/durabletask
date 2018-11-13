@@ -11,6 +11,12 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
+using System.Diagnostics;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.W3C;
+
+#pragma warning disable 618
 namespace DurableTask.AzureStorage.Messaging
 {
     using System;
@@ -284,6 +290,9 @@ namespace DurableTask.AzureStorage.Messaging
                 taskMessage);
         }
 
+        // correlation
+        private static TelemetryClient client = new TelemetryClient();
+
         static async Task<CloudQueueMessage> CreateOutboundQueueMessageAsync(
             MessageManager messageManager,
             OrchestrationInstance sourceInstance,
@@ -297,8 +306,18 @@ namespace DurableTask.AzureStorage.Messaging
 
             var data = new MessageData(taskMessage, outboundTraceActivityId, queueName);
             data.SequenceNumber = Interlocked.Increment(ref messageSequenceNumber);
+            // correlation
+            data.SetupCausality();
+            data.SetOwner(outboundTraceActivityId);
+            var current = Activity.Current;
+            var dependency = new DependencyTelemetry("Durable Functions", "target", "outbound", null);
+            string rawContent = "";
+            using (client.StartOperation(dependency))
+            {
+                Activity.Current.UpdateContextOnActivity();
+                rawContent = await messageManager.SerializeMessageDataAsync(data);
+            }
 
-            string rawContent = await messageManager.SerializeMessageDataAsync(data);
 
             AnalyticsEventSource.Log.SendingMessage(
                 outboundTraceActivityId,

@@ -11,6 +11,9 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
+using System.Diagnostics;
+using System.Reflection;
+
 namespace DurableTask.AzureStorage
 {
     using System;
@@ -593,10 +596,15 @@ namespace DurableTask.AzureStorage
                     }
 
                     session.StartNewLogicalTraceScope();
+                    var current = Activity.Current;
                     foreach (MessageData message in session.CurrentMessageBatch)
                     {
                         session.TraceProcessingMessage(message, isExtendedSession: false);
+                        // Correlation TODO: this is for multiple message 
+                        message.SetupCausality();
+                        message.SetOwner(traceActivityId);
                     }
+
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {
@@ -605,6 +613,7 @@ namespace DurableTask.AzureStorage
                         NewMessages = session.CurrentMessageBatch.Select(m => m.TaskMessage).ToList(),
                         OrchestrationRuntimeState = session.RuntimeState,
                         Session = this.settings.ExtendedSessionsEnabled ? session : null,
+                        CurrentActivity = current,
                     };
 
                     if (!this.IsExecutableInstance(session.RuntimeState, orchestrationWorkItem.NewMessages, out string warningMessage))
@@ -756,12 +765,20 @@ namespace DurableTask.AzureStorage
                     Utils.ExtensionVersion);
                 return;
             }
+            // Correlation
+            var property = typeof(Activity).GetProperty("Current", BindingFlags.Static | BindingFlags.Public);
+            property.SetValue(null, workItem.CurrentActivity);
+            var current = Activity.Current;
+
 
             session.StartNewLogicalTraceScope();
             OrchestrationRuntimeState runtimeState = workItem.OrchestrationRuntimeState;
 
             string instanceId = workItem.InstanceId;
             string executionId = runtimeState.OrchestrationInstance.ExecutionId;
+
+            // Correlation
+
 
             // First, add new messages into the queue. If a failure happens after this, duplicate messages will
             // be written after the retry, but the results of those messages are expected to be de-dup'd later.
@@ -947,9 +964,15 @@ namespace DurableTask.AzureStorage
                     return null;
                 }
 
+
                 Guid traceActivityId = Guid.NewGuid();
                 var session = new ActivitySession(this.storageAccountName, this.settings.TaskHubName, message, traceActivityId);
                 session.StartNewLogicalTraceScope();
+                // Correlation
+                message.SetupCausality();
+                message.SetOwner(traceActivityId);
+
+
                 TraceMessageReceived(session.MessageData, this.storageAccountName, this.settings.TaskHubName);
                 session.TraceProcessingMessage(message, isExtendedSession: false);
 
@@ -972,6 +995,7 @@ namespace DurableTask.AzureStorage
                     Id = message.Id,
                     TaskMessage = session.MessageData.TaskMessage,
                     LockedUntilUtc = message.OriginalQueueMessage.NextVisibleTime.Value.UtcDateTime,
+                    CurrentActivity = Activity.Current,
                 };
             }
         }
@@ -990,6 +1014,10 @@ namespace DurableTask.AzureStorage
                     Utils.ExtensionVersion);
                 return;
             }
+
+            // Correlation 
+            var property = typeof(Activity).GetProperty("Current", BindingFlags.Static | BindingFlags.Public);
+            property.SetValue(null, workItem.CurrentActivity);
 
             session.StartNewLogicalTraceScope();
             string instanceId = workItem.TaskMessage.OrchestrationInstance.InstanceId;

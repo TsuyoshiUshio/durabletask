@@ -21,11 +21,21 @@ namespace DurableTask.AzureStorage
 
     /// <summary>
     /// Tracks causality via queue<see cref="MessageData"/> with Activity. You can find causality releated method on <see cref="MessageDataExtensions"/>
+    /// https://w3c.github.io/trace-context/
     /// </summary>
     public class DurableCausalityManager
     {
+        /// <summary>
+        /// W3C TraceId
+        /// </summary>
         public const string W3CTraceId = "w3c_traceId";
+        /// <summary>
+        /// W3C SpanId
+        /// </summary>
         public const string W3CSpanId  = "w3c_spanId";
+        /// <summary>
+        /// W3C Tracestate
+        /// </summary>
         public const string W3CTraceState = "w3c_tracestate";
     }
 }

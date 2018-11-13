@@ -68,6 +68,7 @@ namespace DurableTask.AzureStorage
         /// <summary>
         /// TraceContext for correlation.
         /// </summary>
+        [DataMember]
         public TraceContext TraceContext { get; set; }
 
         internal string Id => this.OriginalQueueMessage?.Id;

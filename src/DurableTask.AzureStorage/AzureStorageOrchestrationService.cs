@@ -13,6 +13,8 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 
 namespace DurableTask.AzureStorage
 {
@@ -571,6 +573,9 @@ namespace DurableTask.AzureStorage
 
         #endregion
 
+        // correlation
+        private static TelemetryClient client = new TelemetryClient();
+
         #region Orchestration Work Item Methods
         /// <inheritdoc />
         public async Task<TaskOrchestrationWorkItem> LockNextTaskOrchestrationWorkItemAsync(
@@ -600,11 +605,19 @@ namespace DurableTask.AzureStorage
                     foreach (MessageData message in session.CurrentMessageBatch)
                     {
                         session.TraceProcessingMessage(message, isExtendedSession: false);
-                        // Correlation TODO: this is for multiple message 
-                        message.SetupCausality();
-                        message.SetOwner(traceActivityId);
-                    }
 
+                    }
+                    //// Correlation TODO: this is for multiple message 
+                    //var firstMassage = session.CurrentMessageBatch.FirstOrDefault();
+                    //if (current == null)
+                    //{
+                    //    current = new Activity("Orchestration Receive Queue");
+                        
+                    //    current.Start();
+                    //    current.SetParentId(firstMassage.TraceContext.ParentId);
+                    //    //TODO adding W3C trace.
+
+                    //}
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {
@@ -615,6 +628,13 @@ namespace DurableTask.AzureStorage
                         Session = this.settings.ExtendedSessionsEnabled ? session : null,
                         CurrentActivity = current,
                     };
+
+                    // Correlation Serialize the message data. 
+                    orchestrationWorkItem.OrchestrationRuntimeState.MessageDatas =
+                        JsonConvert.SerializeObject(session.CurrentMessageBatch, new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.Objects
+                        });
 
                     if (!this.IsExecutableInstance(session.RuntimeState, orchestrationWorkItem.NewMessages, out string warningMessage))
                     {

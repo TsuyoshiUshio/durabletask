@@ -61,6 +61,11 @@ namespace DurableTask.Core
         }
 
         /// <summary>
+        /// For correlation experiment. SearizedMessageData
+        /// </summary>
+        public string MessageDatas;
+
+        /// <summary>
         /// Creates a new instance of the OrchestrationRuntimeState with the supplied events
         /// </summary>
         /// <param name="events">List of events for this runtime state</param>

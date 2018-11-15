@@ -306,15 +306,18 @@ namespace DurableTask.AzureStorage.Messaging
 
             var data = new MessageData(taskMessage, outboundTraceActivityId, queueName);
             data.SequenceNumber = Interlocked.Increment(ref messageSequenceNumber);
+            var current = Activity.Current;
             // correlation
             data.SetupCausality();
-            data.SetOwner(outboundTraceActivityId);
-            var current = Activity.Current;
+            // TODO W3C
+            data.TraceContext.ParentId = current.Id;
+
             var dependency = new DependencyTelemetry("Durable Functions", "target", "outbound", null);
             string rawContent = "";
             using (client.StartOperation(dependency))
             {
                 Activity.Current.UpdateContextOnActivity();
+                var current2 = Activity.Current;
                 rawContent = await messageManager.SerializeMessageDataAsync(data);
             }
 

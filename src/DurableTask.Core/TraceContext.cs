@@ -28,6 +28,10 @@ namespace DurableTask.Core
         /// ParentId for backward compatibility
         /// </summary>
        public string ParentId { get; set; }
+        /// <summary>
+        /// RootId for backward compatibility
+        /// </summary>
+        public string RootId { get; set; }
 
         /// <summary>
         /// Traceparent

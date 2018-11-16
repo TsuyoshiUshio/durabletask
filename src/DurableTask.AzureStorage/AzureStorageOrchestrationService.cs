@@ -15,6 +15,8 @@ using System.Diagnostics;
 using System.Reflection;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.DependencyCollector;
+using Microsoft.ApplicationInsights.Extensibility;
 
 namespace DurableTask.AzureStorage
 {
@@ -576,6 +578,19 @@ namespace DurableTask.AzureStorage
         // correlation
         private static TelemetryClient client = new TelemetryClient();
 
+        static AzureStorageOrchestrationService()
+        {
+            DependencyTrackingTelemetryModule module = new DependencyTrackingTelemetryModule();
+            module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("core.windows.net");
+            module.Initialize(TelemetryConfiguration.Active);
+
+            var config = new TelemetryConfiguration();
+            // Set the instrumentKey
+            config.InstrumentationKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
+
+            client = new TelemetryClient(config);
+        }
+
         #region Orchestration Work Item Methods
         /// <inheritdoc />
         public async Task<TaskOrchestrationWorkItem> LockNextTaskOrchestrationWorkItemAsync(
@@ -591,6 +606,8 @@ namespace DurableTask.AzureStorage
                 // This call will block until the next session is ready
                 OrchestrationSession session = null;
                 TaskOrchestrationWorkItem orchestrationWorkItem = null;
+                // correlation
+                IOperationHolder<RequestTelemetry> operation = null;
 
                 try
                 {
@@ -601,32 +618,32 @@ namespace DurableTask.AzureStorage
                     }
 
                     session.StartNewLogicalTraceScope();
-                    var current = Activity.Current;
+                    
                     foreach (MessageData message in session.CurrentMessageBatch)
                     {
                         session.TraceProcessingMessage(message, isExtendedSession: false);
 
                     }
-                    //// Correlation TODO: this is for multiple message 
-                    //var firstMassage = session.CurrentMessageBatch.FirstOrDefault();
-                    //if (current == null)
-                    //{
-                    //    current = new Activity("Orchestration Receive Queue");
-                        
-                    //    current.Start();
-                    //    current.SetParentId(firstMassage.TraceContext.ParentId);
-                    //    //TODO adding W3C trace.
 
-                    //}
+                    //// Correlation TODO: this is for multiple message 
+                    var firstMessage = session.CurrentMessageBatch.FirstOrDefault();
+                    var requestTelemetry = new RequestTelemetry {Name = $"Orchestrator {firstMessage.SequenceNumber}"};
+                    requestTelemetry.Context.Operation.Id = firstMessage.TraceContext.ParentId;
+                    // requestTelemetry.Context.Operation.ParentId = firstMessage.TraceContext.ParentId;
+
+                    operation = client.StartOperation(requestTelemetry);
+                    var current = Activity.Current;
+
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {
                         InstanceId = session.Instance.InstanceId,
-                        LockedUntilUtc = session.CurrentMessageBatch.Min(msg => msg.OriginalQueueMessage.NextVisibleTime.Value.UtcDateTime),
+                        LockedUntilUtc = session.CurrentMessageBatch.Min(msg =>
+                            msg.OriginalQueueMessage.NextVisibleTime.Value.UtcDateTime),
                         NewMessages = session.CurrentMessageBatch.Select(m => m.TaskMessage).ToList(),
                         OrchestrationRuntimeState = session.RuntimeState,
                         Session = this.settings.ExtendedSessionsEnabled ? session : null,
-                        CurrentActivity = current,
+                        CurrentActivity = Activity.Current,
                     };
 
                     // Correlation Serialize the message data. 
@@ -636,7 +653,8 @@ namespace DurableTask.AzureStorage
                             TypeNameHandling = TypeNameHandling.Objects
                         });
 
-                    if (!this.IsExecutableInstance(session.RuntimeState, orchestrationWorkItem.NewMessages, out string warningMessage))
+                    if (!this.IsExecutableInstance(session.RuntimeState, orchestrationWorkItem.NewMessages,
+                        out string warningMessage))
                     {
                         var eventListBuilder = new StringBuilder(orchestrationWorkItem.NewMessages.Count * 40);
                         foreach (TaskMessage msg in orchestrationWorkItem.NewMessages)
@@ -664,7 +682,7 @@ namespace DurableTask.AzureStorage
 
                     return orchestrationWorkItem;
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException e)
                 {
                     // host is shutting down - release any queued messages
                     if (orchestrationWorkItem != null)
@@ -672,6 +690,9 @@ namespace DurableTask.AzureStorage
                         await this.AbandonTaskOrchestrationWorkItemAsync(orchestrationWorkItem);
                         await this.ReleaseTaskOrchestrationWorkItemAsync(orchestrationWorkItem);
                     }
+
+                    // correlation
+                    client.TrackException(e);
 
                     return null;
                 }
@@ -691,7 +712,14 @@ namespace DurableTask.AzureStorage
                         await this.ReleaseTaskOrchestrationWorkItemAsync(orchestrationWorkItem);
                     }
 
+                    // correation
+                    client.TrackException(e);
+
                     throw;
+                }
+                finally
+                {
+                    client.StopOperation(operation);
                 }
             }
         }
@@ -988,35 +1016,52 @@ namespace DurableTask.AzureStorage
                 Guid traceActivityId = Guid.NewGuid();
                 var session = new ActivitySession(this.storageAccountName, this.settings.TaskHubName, message, traceActivityId);
                 session.StartNewLogicalTraceScope();
-                // Correlation
-                message.SetupCausality();
-                message.SetOwner(traceActivityId);
 
+                //// Correlation TODO: this is for multiple message 
 
-                TraceMessageReceived(session.MessageData, this.storageAccountName, this.settings.TaskHubName);
-                session.TraceProcessingMessage(message, isExtendedSession: false);
+                var requestTelemetry = new RequestTelemetry { Name = $"Orchestrator {message.SequenceNumber}" };
+                requestTelemetry.Context.Operation.Id = message.TraceContext.ParentId;
+                // requestTelemetry.Context.Operation.ParentId = message.TraceContext.ParentId; /// document is wrong.
 
-                if (!this.activeActivitySessions.TryAdd(message.Id, session))
+                var operation = client.StartOperation(requestTelemetry);
+                var current = Activity.Current;
+                try
                 {
-                    // This means we're already processing this message. This is never expected since the message
-                    // should be kept invisible via background calls to RenewTaskActivityWorkItemLockAsync.
-                    AnalyticsEventSource.Log.AssertFailure(
-                        this.storageAccountName,
-                        this.settings.TaskHubName,
-                        $"Work item queue message with ID = {message.Id} is being processed multiple times concurrently.",
-                        Utils.ExtensionVersion);
-                    return null;
+
+                    TraceMessageReceived(session.MessageData, this.storageAccountName, this.settings.TaskHubName);
+                    session.TraceProcessingMessage(message, isExtendedSession: false);
+
+                    if (!this.activeActivitySessions.TryAdd(message.Id, session))
+                    {
+                        // This means we're already processing this message. This is never expected since the message
+                        // should be kept invisible via background calls to RenewTaskActivityWorkItemLockAsync.
+                        AnalyticsEventSource.Log.AssertFailure(
+                            this.storageAccountName,
+                            this.settings.TaskHubName,
+                            $"Work item queue message with ID = {message.Id} is being processed multiple times concurrently.",
+                            Utils.ExtensionVersion);
+                        return null;
+                    }
+
+                    this.stats.ActiveActivityExecutions.Increment();
+
+                    return new TaskActivityWorkItem
+                    {
+                        Id = message.Id,
+                        TaskMessage = session.MessageData.TaskMessage,
+                        LockedUntilUtc = message.OriginalQueueMessage.NextVisibleTime.Value.UtcDateTime,
+                        CurrentActivity = Activity.Current,
+                    };
                 }
-
-                this.stats.ActiveActivityExecutions.Increment();
-
-                return new TaskActivityWorkItem
+                catch (Exception e)
                 {
-                    Id = message.Id,
-                    TaskMessage = session.MessageData.TaskMessage,
-                    LockedUntilUtc = message.OriginalQueueMessage.NextVisibleTime.Value.UtcDateTime,
-                    CurrentActivity = Activity.Current,
-                };
+                    client.TrackException(e);
+                    throw e;
+                }
+                finally
+                {
+                    client.StopOperation(operation);
+                }
             }
         }
 

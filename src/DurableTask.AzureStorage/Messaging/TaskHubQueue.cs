@@ -14,6 +14,8 @@
 using System.Diagnostics;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.DependencyCollector;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.W3C;
 
 #pragma warning disable 618
@@ -293,6 +295,19 @@ namespace DurableTask.AzureStorage.Messaging
         // correlation
         private static TelemetryClient client = new TelemetryClient();
 
+        static TaskHubQueue()
+        {
+            DependencyTrackingTelemetryModule module = new DependencyTrackingTelemetryModule();
+            module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("core.windows.net");
+            module.Initialize(TelemetryConfiguration.Active);
+
+            var config = new TelemetryConfiguration();
+            // Set the instrumentKey
+            config.InstrumentationKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
+
+            client = new TelemetryClient(config);
+        }
+
         static async Task<CloudQueueMessage> CreateOutboundQueueMessageAsync(
             MessageManager messageManager,
             OrchestrationInstance sourceInstance,
@@ -306,37 +321,51 @@ namespace DurableTask.AzureStorage.Messaging
 
             var data = new MessageData(taskMessage, outboundTraceActivityId, queueName);
             data.SequenceNumber = Interlocked.Increment(ref messageSequenceNumber);
+
             var current = Activity.Current;
-            // correlation
-            data.SetupCausality();
-            // TODO W3C
-            data.TraceContext.ParentId = current.Id;
 
-            var dependency = new DependencyTelemetry("Durable Functions", "target", "outbound", null);
+            var operation = client.StartOperation<DependencyTelemetry>($"Enqueue {data.SequenceNumber}");
+            operation.Telemetry.Type = "Durable Functions";
+            operation.Telemetry.Data = $"Enqueue {data.SequenceNumber}";
             string rawContent = "";
-            using (client.StartOperation(dependency))
+            data.SetupCausality(); // For W3C now using only instansiate TraceContext
+            // data.TraceContext.ParentId = operation.Telemetry.Id; // This value is ok.
+            // data.TraceContext.RootId = operation.Telemetry.Context.Operation.Id; // Wrong value;
+
+            var current2 = Activity.Current;
+            data.TraceContext.ParentId = current2.Id;
+            data.TraceContext.RootId = current2.RootId;
+            try
             {
-                Activity.Current.UpdateContextOnActivity();
-                var current2 = Activity.Current;
                 rawContent = await messageManager.SerializeMessageDataAsync(data);
+
+
+                AnalyticsEventSource.Log.SendingMessage(
+                    outboundTraceActivityId,
+                    storageAccountName,
+                    taskHub,
+                    taskMessage.Event.EventType.ToString(),
+                    sourceInstance.InstanceId,
+                    sourceInstance.ExecutionId,
+                    Encoding.Unicode.GetByteCount(rawContent),
+                    data.QueueName /* PartitionId */,
+                    taskMessage.OrchestrationInstance.InstanceId,
+                    taskMessage.OrchestrationInstance.ExecutionId,
+                    data.SequenceNumber,
+                    Utils.ExtensionVersion);
+
+                return new CloudQueueMessage(rawContent);
             }
-
-
-            AnalyticsEventSource.Log.SendingMessage(
-                outboundTraceActivityId,
-                storageAccountName,
-                taskHub,
-                taskMessage.Event.EventType.ToString(),
-                sourceInstance.InstanceId,
-                sourceInstance.ExecutionId,
-                Encoding.Unicode.GetByteCount(rawContent),
-                data.QueueName /* PartitionId */,
-                taskMessage.OrchestrationInstance.InstanceId,
-                taskMessage.OrchestrationInstance.ExecutionId,
-                data.SequenceNumber,
-                Utils.ExtensionVersion);
-
-            return new CloudQueueMessage(rawContent);
+            catch (Exception e)
+            {
+                operation.Telemetry.Success = false;
+                client.TrackException(e);
+                throw e;
+            }
+            finally
+            {
+                client.StopOperation(operation);
+            }
         }
 
         public async Task CreateIfNotExistsAsync()

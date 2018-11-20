@@ -607,7 +607,8 @@ namespace DurableTask.AzureStorage
                 OrchestrationSession session = null;
                 TaskOrchestrationWorkItem orchestrationWorkItem = null;
                 // correlation
-                IOperationHolder<RequestTelemetry> operation = null;
+                RequestTelemetry requestTelemetry = null;
+                Activity requestActivity = null;
 
                 try
                 {
@@ -627,11 +628,16 @@ namespace DurableTask.AzureStorage
 
                     //// Correlation TODO: this is for multiple message 
                     var firstMessage = session.CurrentMessageBatch.FirstOrDefault();
-                    var requestTelemetry = new RequestTelemetry {Name = $"Orchestrator {firstMessage.SequenceNumber}"};
-                    requestTelemetry.Context.Operation.Id = firstMessage.TraceContext.ParentId;
-                    // requestTelemetry.Context.Operation.ParentId = firstMessage.TraceContext.ParentId;
+                    var name = $"Orchestrator {firstMessage.SequenceNumber}";
+                    requestActivity = new Activity(name);
+                    requestActivity.SetParentId(firstMessage.TraceContext.ParentId);
+                    requestActivity.Start();
+                    requestTelemetry = new RequestTelemetry {Name = name};
+                    requestTelemetry.Id = requestActivity.Id;
+                    requestTelemetry.Context.Operation.Id = requestActivity.RootId;
+                    requestTelemetry.Context.Operation.ParentId = requestActivity.ParentId;
+                    requestTelemetry.Start();
 
-                    operation = client.StartOperation(requestTelemetry);
                     var current = Activity.Current;
 
 
@@ -719,7 +725,11 @@ namespace DurableTask.AzureStorage
                 }
                 finally
                 {
-                    client.StopOperation(operation);
+                    
+                    requestTelemetry.Stop();
+                    requestActivity.Stop();
+                    client.Track(requestTelemetry);
+
                 }
             }
         }
@@ -1017,13 +1027,18 @@ namespace DurableTask.AzureStorage
                 var session = new ActivitySession(this.storageAccountName, this.settings.TaskHubName, message, traceActivityId);
                 session.StartNewLogicalTraceScope();
 
-                //// Correlation TODO: this is for multiple message 
-
-                var requestTelemetry = new RequestTelemetry { Name = $"Orchestrator {message.SequenceNumber}" };
-                requestTelemetry.Context.Operation.Id = message.TraceContext.ParentId;
-                // requestTelemetry.Context.Operation.ParentId = message.TraceContext.ParentId; /// document is wrong.
-
-                var operation = client.StartOperation(requestTelemetry);
+                //// Correlation TODO: this is for multiple message
+               
+                var name = $"Activity {message.SequenceNumber}";
+                var requestActivity = new Activity(name);
+                requestActivity.SetParentId(message.TraceContext.ParentId);
+                requestActivity.Start();
+                var requestTelemetry = new RequestTelemetry { Name = name };
+                requestTelemetry.Id = requestActivity.Id;
+                requestTelemetry.Context.Operation.Id = requestActivity.RootId;
+                requestTelemetry.Context.Operation.ParentId = requestActivity.ParentId;
+                requestTelemetry.Start();
+            
                 var current = Activity.Current;
                 try
                 {
@@ -1060,7 +1075,9 @@ namespace DurableTask.AzureStorage
                 }
                 finally
                 {
-                    client.StopOperation(operation);
+                    requestTelemetry.Stop();
+                    requestActivity.Stop();
+                    client.Track(requestTelemetry);
                 }
             }
         }

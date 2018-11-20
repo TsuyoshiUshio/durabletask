@@ -323,18 +323,28 @@ namespace DurableTask.AzureStorage.Messaging
             data.SequenceNumber = Interlocked.Increment(ref messageSequenceNumber);
 
             var current = Activity.Current;
+            var name = $"Enqueue {data.SequenceNumber}";
 
-            var operation = client.StartOperation<DependencyTelemetry>($"Enqueue {data.SequenceNumber}");
-            operation.Telemetry.Type = "Durable Functions";
-            operation.Telemetry.Data = $"Enqueue {data.SequenceNumber}";
+            var dependencyActivity = new Activity(name);
+            dependencyActivity.SetParentId(current.Id);
+            dependencyActivity.Start();
+            var dependencyTelemetry = new DependencyTelemetry{Name = name};
+            dependencyTelemetry.Id = dependencyActivity.Id;
+            dependencyTelemetry.Context.Operation.Id = dependencyActivity.RootId;
+            dependencyTelemetry.Context.Operation.ParentId = dependencyActivity.ParentId;
+            dependencyTelemetry.Type = "Durable Functions";
+
             string rawContent = "";
             data.SetupCausality(); // For W3C now using only instansiate TraceContext
-            // data.TraceContext.ParentId = operation.Telemetry.Id; // This value is ok.
-            // data.TraceContext.RootId = operation.Telemetry.Context.Operation.Id; // Wrong value;
+                                   // data.TraceContext.ParentId = operation.Telemetry.Id; // This value is ok.
+                                   // data.TraceContext.RootId = operation.Telemetry.Context.Operation.Id; // Wrong value;
+
+           
+            data.TraceContext.RootId = dependencyActivity.RootId;
+            data.TraceContext.ParentId = dependencyActivity.Id;
 
             var current2 = Activity.Current;
-            data.TraceContext.ParentId = current2.Id;
-            data.TraceContext.RootId = current2.RootId;
+
             try
             {
                 rawContent = await messageManager.SerializeMessageDataAsync(data);
@@ -358,13 +368,14 @@ namespace DurableTask.AzureStorage.Messaging
             }
             catch (Exception e)
             {
-                operation.Telemetry.Success = false;
                 client.TrackException(e);
                 throw e;
             }
             finally
             {
-                client.StopOperation(operation);
+                dependencyTelemetry.Stop();
+                dependencyActivity.Stop();
+                client.Track(dependencyTelemetry);
             }
         }
 

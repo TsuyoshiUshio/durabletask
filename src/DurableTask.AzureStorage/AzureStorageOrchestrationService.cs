@@ -36,6 +36,7 @@ namespace DurableTask.AzureStorage
 
     /// <summary>
     /// Orchestration service provider for the Durable Task Framework which uses Azure Storage as the durable store.
+    /// New Test
     /// </summary>
     public sealed class AzureStorageOrchestrationService :
         IOrchestrationService,

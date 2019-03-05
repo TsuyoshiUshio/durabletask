@@ -47,6 +47,9 @@ namespace DurableTask.ServiceBus.Tests
         [TestCleanup]
         public void TestCleanup()
         {
+            Console.WriteLine("***************** watch out **************");
+            Console.WriteLine($"taskHub: {this.taskHub} ");
+            Console.WriteLine($"orchestration: {this.taskHub.orchestrationService}");
             this.taskHub.StopAsync(true).Wait();
             this.taskHub.orchestrationService.DeleteAsync(true).Wait();
         }

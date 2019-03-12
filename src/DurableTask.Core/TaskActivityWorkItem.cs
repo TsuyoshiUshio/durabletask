@@ -11,11 +11,10 @@
 //  limitations under the License.
 //  ----------------------------------------------------------------------------------
 
-using System.Diagnostics;
-
 namespace DurableTask.Core
 {
     using System;
+    using System.Diagnostics;
 
     /// <summary>
     /// An active instance / work item of a task activity

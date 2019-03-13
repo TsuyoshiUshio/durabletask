@@ -33,8 +33,8 @@ namespace DurableTask.AzureStorage.Tests.Correlation
     /// </summary>
     public class DurableTaskCorrelationTelemetryInitializer : ITelemetryInitializer
     {
-        private const string RddDiagnosticSourcePrefix = "rdddsc";
-        private const string SqlRemoteDependencyType = "SQL";
+        const string RddDiagnosticSourcePrefix = "rdddsc";
+        const string SqlRemoteDependencyType = "SQL";
 
         /// <summary>Initializes telemety item.</summary>
         /// <param name="telemetry">Telemetry item.</param>

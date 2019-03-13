@@ -422,7 +422,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         //[TestMethod] ContinueAsNew
         //[TestMethod] terminate
 
-        private async Task<Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>>> ExecuteOrchestrationWithExceptionAsync(Type orchestrationType, string parameter, int timeout)
+        async Task<Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>>> ExecuteOrchestrationWithExceptionAsync(Type orchestrationType, string parameter, int timeout)
         {
             var sendItems = new ConcurrentQueue<ITelemetry>();
             await ExtractTelemetry(orchestrationType, parameter, timeout, sendItems);
@@ -438,7 +438,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
 
 
 
-        private async Task<List<OperationTelemetry>> ExecuteOrchestrationAsync(Type orchestrationType, string parameter, int timeout)
+        async Task<List<OperationTelemetry>> ExecuteOrchestrationAsync(Type orchestrationType, string parameter, int timeout)
         {
             var sendItems = new ConcurrentQueue<ITelemetry>();
             await ExtractTelemetry(orchestrationType, parameter, timeout, sendItems);
@@ -449,13 +449,13 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             return  FilterOperationTelemetry(operationTelemetryList).ToList().CorrelationSort();
         }
 
-        private IEnumerable<OperationTelemetry> FilterOperationTelemetry(IEnumerable<OperationTelemetry> operationTelemetries)
+        IEnumerable<OperationTelemetry> FilterOperationTelemetry(IEnumerable<OperationTelemetry> operationTelemetries)
         {
             return operationTelemetries.Where(
                 p => p.Name.Contains(TraceMessages.Activity) || p.Name.Contains(TraceMessages.Orchestrator) || p.Name.Contains(TraceMessages.Client) || p.Name.Contains("Operation"));
         }
 
-        private async Task ExtractTelemetry(Type orchestrationType, string parameter, int timeout, ConcurrentQueue<ITelemetry> sendItems)
+        async Task ExtractTelemetry(Type orchestrationType, string parameter, int timeout, ConcurrentQueue<ITelemetry> sendItems)
         {
             var sendAction = new Action<ITelemetry>(
                 delegate(ITelemetry telemetry) { sendItems.Enqueue(telemetry); });
@@ -474,7 +474,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             }
         }
 
-        private List<ITelemetry> ConvertTo(ConcurrentQueue<ITelemetry> queue)
+        List<ITelemetry> ConvertTo(ConcurrentQueue<ITelemetry> queue)
         {
             var converted = new List<ITelemetry>();
             while (!queue.IsEmpty)

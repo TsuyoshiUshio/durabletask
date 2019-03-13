@@ -25,14 +25,14 @@ namespace DurableTask.Core
     /// </summary>
     public class CorrelationTraceClient
     {
-        private const string DiagnosticSourceName = "DurableTask.AzureStorage";
-        private const string RequestTrackEvent = "RequestEvent";
-        private const string RequestTrackEventWithCorrelationTrace = "RequestEventWithCorreationTrace";
-        private const string DependencyTrackEvent = "DependencyEvent";
-        private const string ExceptionEvent = "ExceptionEvent";
-        private static DiagnosticSource logger = new DiagnosticListener(DiagnosticSourceName);
-        private static IDisposable applicationInsightsSubscription = null;
-        private static IDisposable listenerSubscription = null;
+        const string DiagnosticSourceName = "DurableTask.AzureStorage";
+        const string RequestTrackEvent = "RequestEvent";
+        const string RequestTrackEventWithCorrelationTrace = "RequestEventWithCorreationTrace";
+        const string DependencyTrackEvent = "DependencyEvent";
+        const string ExceptionEvent = "ExceptionEvent";
+        static DiagnosticSource logger = new DiagnosticListener(DiagnosticSourceName);
+        static IDisposable applicationInsightsSubscription = null;
+        static IDisposable listenerSubscription = null;
 
         /// <summary>
         /// Setup this class uses callbacks to enable send telemetry to the Application Insights.

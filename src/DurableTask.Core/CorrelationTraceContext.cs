@@ -33,8 +33,8 @@ namespace DurableTask.Core
     {
 
 #if NETSTANDARD2_0
-        private static AsyncLocal<TraceContext> current = new AsyncLocal<TraceContext>();
-        private static AsyncLocal<bool> hasDependencyTelemetryTracked = new AsyncLocal<bool>();
+        static AsyncLocal<TraceContext> current = new AsyncLocal<TraceContext>();
+        static AsyncLocal<bool> hasDependencyTelemetryTracked = new AsyncLocal<bool>();
         /// <summary>
         /// Share the TraceContext on the call graph context.
         /// </summary>
@@ -55,7 +55,7 @@ namespace DurableTask.Core
 #else
 
         const string TraceContextCurrentInstance = "TraceContextCurrentInstance";
-        private const string DependencyTelemetryHasTracked = "DependencyTelemetryHasTracked";
+        const string DependencyTelemetryHasTracked = "DependencyTelemetryHasTracked";
 
         /// <summary>
         /// Share the TraceContext on the call graph context.

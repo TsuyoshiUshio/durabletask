@@ -26,7 +26,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
 
     public class TelemetryActivator
     {        
-        private static TelemetryClient telemetryClient;
+        static TelemetryClient telemetryClient;
 
         public void Initialize()
         {
@@ -40,7 +40,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             SetUpTelemetryCallbacks();
         }
 
-        private void SetUpTelemetryCallbacks()
+        void SetUpTelemetryCallbacks()
         {
             CorrelationTraceClient.SetUp(
                 (Activity requestActivity) =>
@@ -67,7 +67,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             );
         }
 
-        private void SetUpTelemetryClient(Action<ITelemetry> onSend, string instrumentationKey)
+        void SetUpTelemetryClient(Action<ITelemetry> onSend, string instrumentationKey)
         {
             var module = new DependencyTrackingTelemetryModule();
             module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("core.windows.net");

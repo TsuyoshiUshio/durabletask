@@ -33,7 +33,7 @@ namespace Correlation.Samples
             SetUpTelemetryCallbacks();
         }
 
-        private void SetUpTelemetryCallbacks()
+        void SetUpTelemetryCallbacks()
         {
             CorrelationTraceClient.SetUp(
                 (Activity requestActivity) =>
@@ -60,7 +60,7 @@ namespace Correlation.Samples
             );
         }
 
-        private void SetUpTelemetryClient()
+        void SetUpTelemetryClient()
         {
             //            var module = new DependencyTrackingTelemetryModule();
             //            module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("core.windows.net");

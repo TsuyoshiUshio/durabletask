@@ -18,7 +18,6 @@ namespace DurableTask.Core
     using System;
     using System.Diagnostics;
     using System.Reflection;
-    using DurableTask.Core;
     using Microsoft.ApplicationInsights.W3C;
 
     /// <summary>

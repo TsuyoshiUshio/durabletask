@@ -23,9 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Microsoft.AI.DependencyCollector">
-      <HintPath>..\..\..\..\..\.nuget\packages\microsoft.applicationinsights.dependencycollector\2.8.0\lib\net45\Microsoft.AI.DependencyCollector.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.8.0" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="4.5.0" />
   </ItemGroup>
   
 </Project>

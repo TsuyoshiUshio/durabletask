@@ -22,6 +22,7 @@ namespace Correlation.Samples
             // Add CI change with new config with debug. 
             // new HelloWorldScenario().ExecuteAsync().GetAwaiter().GetResult(); // basic sample
             new MultiLayerOrchestrationWithRetryScenario().ExecuteAsync().GetAwaiter().GetResult(); // complex sample
+            Console.WriteLine("hello");
             Console.WriteLine("Orchestration is successfully finished.");
             Console.ReadLine();
         }

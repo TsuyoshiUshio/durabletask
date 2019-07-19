@@ -28,7 +28,6 @@ namespace DurableTask.Core
     /// </summary>
     public class TraceContextFactory
     {
-        static readonly TraceContextBase defaultContext = new NullObjectTraceContext();
         /// <summary>
         /// Create an instance of TraceContext
         /// </summary>
@@ -53,7 +52,7 @@ namespace DurableTask.Core
         /// Create a default context of TraceContext
         /// returns NullObjectTraceContext object
         /// </summary>
-        public static TraceContextBase Default => defaultContext;
+        public static TraceContextBase Empty { get; } = new NullObjectTraceContext();
 
         static ITraceContextFactory CreateFactory()
         {

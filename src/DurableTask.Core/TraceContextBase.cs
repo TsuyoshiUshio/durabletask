@@ -154,7 +154,7 @@ namespace DurableTask.Core
             }
             else
             {
-                return TraceContextFactory.Default;
+                return TraceContextFactory.Empty;
             }
         }
     }

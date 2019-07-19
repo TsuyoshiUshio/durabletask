@@ -662,14 +662,13 @@ namespace DurableTask.AzureStorage
                     var isReplaying = session.RuntimeState.ExecutionStartedEvent?.IsPlayed ?? false;
 
                     var correlatedMessage = GetCorrelatedMessage(session.CurrentMessageBatch);
-                    TraceContextBase parentTraceContext = TraceContextFactory.Default;
+                    TraceContextBase parentTraceContext = TraceContextFactory.Empty;
                     if (correlatedMessage != null)
                     {
                         parentTraceContext = TraceContextBase.Restore(correlatedMessage?.SerializableTraceContext);
                     }
 
-                    TraceContextBase requestTraceContextBase = TraceContextFactory.Default;
-                    requestTraceContextBase = UpdateRequestTraceContextBase(isReplaying, correlatedMessage, requestTraceContextBase, parentTraceContext);
+                    requestTraceContextBase = GetRequestTraceContext(isReplaying, correlatedMessage, parentTraceContext);
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {
@@ -752,14 +751,16 @@ namespace DurableTask.AzureStorage
             return null;
         }
 
-        static TraceContextBase UpdateRequestTraceContextBase(bool isReplaying, MessageData firstMessage, TraceContextBase requestTraceContextBase, TraceContextBase parentTraceContext)
+        static TraceContextBase GetRequestTraceContext(bool isReplaying, MessageData correlatedMessage, TraceContextBase parentTraceContext)
         {
+            TraceContextBase currentRequestTraceContext = TraceContextFactory.Empty;
+
             if (!isReplaying)
             {
-                var name = $"{TraceConstants.Orchestrator} {firstMessage.SequenceNumber}";
-                requestTraceContextBase = TraceContextFactory.Create(name);
-                requestTraceContextBase.SetParentAndStart(parentTraceContext);
-                requestTraceContextBase.OrchestrationTraceContexts.Push(requestTraceContextBase);
+                var name = $"{TraceConstants.Orchestrator} {correlatedMessage.SequenceNumber}";
+                currentRequestTraceContext = TraceContextFactory.Create(name);
+                currentRequestTraceContext.SetParentAndStart(parentTraceContext);
+                currentRequestTraceContext.OrchestrationTraceContexts.Push(currentRequestTraceContext);
             }
             else
             {
@@ -768,15 +769,15 @@ namespace DurableTask.AzureStorage
                 {
                     // Terminate, external events, etc. are examples of messages that not contain any trace context. 
                     // In those cases, we just return an empty trace context and continue on. 
-                    return TraceContextFactory.Default;
+                    return TraceContextFactory.Empty;
                 }
 
-                requestTraceContextBase = parentTraceContext.OrchestrationTraceContexts.Peek();
-                requestTraceContextBase.IsReplay = true;
-                return requestTraceContextBase;
+                currentRequestTraceContext = parentTraceContext.OrchestrationTraceContexts.Peek();
+                currentRequestTraceContext.IsReplay = true;
+                return currentRequestTraceContext;
             }
 
-            return requestTraceContextBase;
+            return currentRequestTraceContext;
         }
 
         internal static Guid StartNewLogicalTraceScope()
@@ -935,7 +936,7 @@ namespace DurableTask.AzureStorage
                     currentTraceContextBaseOnComplete = dependencyTraceContext.OrchestrationTraceContexts.Pop(); // Remove the current OrchestrationState(TraceContextBase) from the stack.
                 } else
                 {
-                    currentTraceContextBaseOnComplete = TraceContextFactory.Default;
+                    currentTraceContextBaseOnComplete = TraceContextFactory.Empty;
                 }
 
                 CorrelationTraceContext.Current = dependencyTraceContext;

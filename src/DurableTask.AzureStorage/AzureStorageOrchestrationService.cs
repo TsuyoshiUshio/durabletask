@@ -661,14 +661,14 @@ namespace DurableTask.AzureStorage
 
                     var isReplaying = session.RuntimeState.ExecutionStartedEvent?.IsPlayed ?? false;
 
-                    var correlatedMessage = GetCorrelatedMessage(session.CurrentMessageBatch);
+                    MessageData correlatedMessage = GetCorrelatedMessage(session.CurrentMessageBatch);
                     TraceContextBase parentTraceContext = TraceContextFactory.Empty;
                     if (correlatedMessage != null)
                     {
-                        parentTraceContext = TraceContextBase.Restore(correlatedMessage?.SerializableTraceContext);
+                        parentTraceContext = TraceContextBase.Restore(correlatedMessage.SerializableTraceContext);
                     }
 
-                    requestTraceContextBase = GetRequestTraceContext(isReplaying, correlatedMessage, parentTraceContext);
+                    TraceContextBase requestTraceContextBase = GetRequestTraceContext(isReplaying, correlatedMessage, parentTraceContext);
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {

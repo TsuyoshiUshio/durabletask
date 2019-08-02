@@ -33,12 +33,12 @@ namespace DurableTask.Core
     {
 
 #if NETSTANDARD2_0
-        static AsyncLocal<TraceContext> current = new AsyncLocal<TraceContext>();
+        static AsyncLocal<TraceContextBase> current = new AsyncLocal<TraceContextBase>();
         static AsyncLocal<bool> suppressDependencyTracking = new AsyncLocal<bool>();
         /// <summary>
         /// Share the TraceContext on the call graph contextBase.
         /// </summary>
-        public static TraceContext Current
+        public static TraceContextBase Current
         {
             get { return current.Value; }
             set { current.Value = value; }
@@ -60,7 +60,7 @@ namespace DurableTask.Core
         /// <summary>
         /// Share the TraceContext on the call graph contextBase.
         /// </summary>
-        public static TraceContext Current
+        public static TraceContextBase Current
         {
             [SecuritySafeCritical]
             get
@@ -68,10 +68,10 @@ namespace DurableTask.Core
                 var data = (ObjectHandle) CallContext.LogicalGetData(TraceContextCurrentInstance);
                 if (data != null)
                 {
-                    return (TraceContext) data.Unwrap();                    
+                    return (TraceContextBase) data.Unwrap();                    
                 }
 
-                return (TraceContext) null;
+                return (TraceContextBase) null;
             }
             [SecuritySafeCritical]
             set

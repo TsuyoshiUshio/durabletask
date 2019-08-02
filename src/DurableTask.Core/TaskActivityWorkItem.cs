@@ -37,7 +37,7 @@ namespace DurableTask.Core
         public TaskMessage TaskMessage;
 
         /// <summary>
-        /// The TraceContextBase which is included on the queue.
+        /// The TraceContext which is included on the queue.
         /// </summary>
         public TraceContextBase TraceContextBase;
     }

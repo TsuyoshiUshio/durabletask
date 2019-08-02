@@ -22,7 +22,7 @@ namespace DurableTask.Core
     using Newtonsoft.Json.Linq;
 
     /// <summary>
-    /// TraceContextBase keep the correlation value.
+    /// TraceContext keep the correlation value.
     /// </summary>
     public abstract class TraceContextBase
     {
@@ -72,7 +72,7 @@ namespace DurableTask.Core
         public abstract TimeSpan Duration { get; }
 
         /// <summary>
-        /// Serializable Json string of TraceContextBase
+        /// Serializable Json string of TraceContext
         /// </summary>
         [JsonIgnore]
         public string SerializableTraceContext => // TODO Implement Custom Serializer
@@ -130,9 +130,9 @@ namespace DurableTask.Core
         }
 
         /// <summary>
-        /// Restore TraceContextBase sub class
+        /// Restore TraceContext sub class
         /// </summary>
-        /// <param name="json">Serialized json of TraceContextBase sub classes</param>
+        /// <param name="json">Serialized json of TraceContext sub classes</param>
         /// <returns></returns>
         public static TraceContextBase Restore(string json) // TODO Implement Custom Serializer
         {

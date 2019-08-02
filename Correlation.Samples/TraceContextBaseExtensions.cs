@@ -21,10 +21,10 @@ namespace Correlation.Samples
     public static class TraceContextBaseExtensions
     {
         /// <summary>
-        /// Create RequestTelemetry from the TraceContextBase
+        /// Create RequestTelemetry from the TraceContext
         /// Currently W3C Trace contextBase is supported. 
         /// </summary>
-        /// <param name="context">TraceContextBase</param>
+        /// <param name="context">TraceContext</param>
         /// <returns></returns>
         public static RequestTelemetry CreateRequestTelemetry(this TraceContextBase context)
         {
@@ -42,7 +42,7 @@ namespace Correlation.Samples
         /// Create DependencyTelemetry from the Activity.
         /// Currently W3C Trace contextBase is supported.
         /// </summary>
-        /// <param name="context">TraceContextBase</param>
+        /// <param name="context">TraceContext</param>
         /// <returns></returns>
         public static DependencyTelemetry CreateDependencyTelemetry(this TraceContextBase context)
         {

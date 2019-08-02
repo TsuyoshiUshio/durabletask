@@ -668,7 +668,7 @@ namespace DurableTask.AzureStorage
                         parentTraceContext = TraceContextBase.Restore(correlatedMessage.SerializableTraceContext);
                     }
 
-                    TraceContextBase requestTraceContextBase = GetRequestTraceContext(isReplaying, correlatedMessage, parentTraceContext);
+                    TraceContextBase currentRequestTraceContext = GetRequestTraceContext(isReplaying, correlatedMessage, parentTraceContext);
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {
@@ -677,7 +677,7 @@ namespace DurableTask.AzureStorage
                         NewMessages = session.CurrentMessageBatch.Select(m => m.TaskMessage).ToList(),
                         OrchestrationRuntimeState = session.RuntimeState,
                         Session = this.settings.ExtendedSessionsEnabled ? session : null,
-                        TraceContextBase = requestTraceContextBase,
+                        TraceContext = currentRequestTraceContext,
                     };
 
                     if (!this.IsExecutableInstance(session.RuntimeState, orchestrationWorkItem.NewMessages, out string warningMessage))
@@ -782,8 +782,8 @@ namespace DurableTask.AzureStorage
 
         internal static Guid StartNewLogicalTraceScope()
         {
-            // This call sets the activity trace ID both on the current thread contextBase
-            // and on the logical call contextBase. AnalyticsEventSource will use this 
+            // This call sets the activity trace ID both on the current thread context
+            // and on the logical call context. AnalyticsEventSource will use this 
             // activity ID for all trace operations.
             Guid traceActivityId = Guid.NewGuid();
             AnalyticsEventSource.SetLogicalTraceActivityId(traceActivityId);
@@ -925,7 +925,7 @@ namespace DurableTask.AzureStorage
             if ((orchestrationState.OrchestrationStatus != OrchestrationStatus.Pending) && (orchestrationState.OrchestrationStatus != OrchestrationStatus.Running))
             {
                 dependencyTraceContext = TraceContextFactory.Create($"{TraceConstants.Orchestrator} {session.RuntimeState.ExecutionStartedEvent?.Name?.GetTargetClassName()}");
-                dependencyTraceContext.SetParentAndStart(workItem.TraceContextBase);
+                dependencyTraceContext.SetParentAndStart(workItem.TraceContext);
                 if (outboundMessages.Count == 0) // TODO Track Telemetry when the orchestration finishes. Consider make it RequestTelemetry.
                 {
                     CorrelationTraceContext.SuppressDependencyTracking = true;
@@ -933,7 +933,7 @@ namespace DurableTask.AzureStorage
 
                 if (dependencyTraceContext.OrchestrationTraceContexts.Count != 0)
                 {
-                    currentTraceContextBaseOnComplete = dependencyTraceContext.OrchestrationTraceContexts.Pop(); // Remove the current OrchestrationState(TraceContextBase) from the stack.
+                    currentTraceContextBaseOnComplete = dependencyTraceContext.OrchestrationTraceContexts.Pop(); // Remove the current OrchestrationState(TraceContext) from the stack.
                 } else
                 {
                     currentTraceContextBaseOnComplete = TraceContextFactory.Empty;
@@ -943,7 +943,7 @@ namespace DurableTask.AzureStorage
             }
             else // Suppose in case of OrchestrationStatus == OrchestrationStatus.Running
             {
-                CorrelationTraceContext.Current = workItem.TraceContextBase;
+                CorrelationTraceContext.Current = workItem.TraceContext;
                 CorrelationTraceContext.SuppressDependencyTracking = true;
             }
 
@@ -1242,7 +1242,7 @@ namespace DurableTask.AzureStorage
             await controlQueue.AddMessageAsync(responseTaskMessage, session);
 
             // Correlation
-            CorrelationTraceClient.TrackDepencencyTelemetry(dependencyTraceContext); // TODO it might not needed. It only requires Sending TraceContextBase to the Queue.
+            CorrelationTraceClient.TrackDepencencyTelemetry(dependencyTraceContext); // TODO it might not needed. It only requires Sending TraceContext to the Queue.
             CorrelationTraceClient.TrackRequestTelemetry(workItem.TraceContextBase);
 
             // Next, delete the work item queue message. This must come after enqueuing the response message.

@@ -26,19 +26,19 @@ namespace DurableTask.Core
 #endif
 
     /// <summary>
-    /// Manage TraceContextBase for Dependency.
-    /// This class share the TraceContextBase using AsyncLocal.
+    /// Manage TraceContext for Dependency.
+    /// This class share the TraceContext using AsyncLocal.
     /// </summary>
     public class CorrelationTraceContext
     {
 
 #if NETSTANDARD2_0
-        static AsyncLocal<TraceContextBase> current = new AsyncLocal<TraceContextBase>();
+        static AsyncLocal<TraceContext> current = new AsyncLocal<TraceContext>();
         static AsyncLocal<bool> suppressDependencyTracking = new AsyncLocal<bool>();
         /// <summary>
-        /// Share the TraceContextBase on the call graph contextBase.
+        /// Share the TraceContext on the call graph contextBase.
         /// </summary>
-        public static TraceContextBase Current
+        public static TraceContext Current
         {
             get { return current.Value; }
             set { current.Value = value; }
@@ -58,9 +58,9 @@ namespace DurableTask.Core
         const string DependencyTelemetryHasTracked = "DependencyTelemetryHasTracked";
 
         /// <summary>
-        /// Share the TraceContextBase on the call graph contextBase.
+        /// Share the TraceContext on the call graph contextBase.
         /// </summary>
-        public static TraceContextBase Current
+        public static TraceContext Current
         {
             [SecuritySafeCritical]
             get
@@ -68,10 +68,10 @@ namespace DurableTask.Core
                 var data = (ObjectHandle) CallContext.LogicalGetData(TraceContextCurrentInstance);
                 if (data != null)
                 {
-                    return (TraceContextBase) data.Unwrap();                    
+                    return (TraceContext) data.Unwrap();                    
                 }
 
-                return (TraceContextBase) null;
+                return (TraceContext) null;
             }
             [SecuritySafeCritical]
             set

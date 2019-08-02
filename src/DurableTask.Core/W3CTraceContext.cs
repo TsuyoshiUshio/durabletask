@@ -32,17 +32,17 @@ namespace DurableTask.Core
         public W3CTraceContext() : base() { }
 
         /// <summary>
-        /// W3C TraceContextBase: Traceparent
+        /// W3C TraceContext: Traceparent
         /// </summary>
         public string TraceParent { get; set; }
 
         /// <summary>
-        /// W3C TraceContextBase: Tracestate
+        /// W3C TraceContext: Tracestate
         /// </summary>
         public string TraceState { get; set; }
 
         /// <summary>
-        /// W3C TraceContextBase: ParentSpanId
+        /// W3C TraceContext: ParentSpanId
         /// </summary>
         public string ParentSpanId { get; set; }
 

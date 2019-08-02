@@ -49,9 +49,9 @@ namespace DurableTask.Core
         public IOrchestrationSession Session;
 
         /// <summary>
-        /// TraceContextBase is a contextBase of Correlation.
+        /// The trace context used for correlation.
         /// </summary>
-        public TraceContextBase TraceContextBase;
+        public TraceContextBase TraceContext;
 
         internal OrchestrationExecutionCursor Cursor;
     }

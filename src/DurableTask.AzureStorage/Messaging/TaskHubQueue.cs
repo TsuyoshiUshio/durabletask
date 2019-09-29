@@ -112,11 +112,26 @@ namespace DurableTask.AzureStorage.Messaging
                 // correlation
 
                 TraceContextBase traceContext = CorrelationTraceContext.Current;
-                if (traceContext != null) {
-                    if ((!traceContext.IsReplay) && (!CorrelationTraceContext.SuppressDependencyTracking))
-                        CorrelationTraceClient.TrackDepencencyTelemetry(traceContext);
+                if (traceContext != null)
+                {
+                    if (CorrelationTraceContext.GenerateDependencyTracking)
+                    {
+                        string name = "outbound";
+                        if (taskMessage.Event.GetType() == typeof(ExecutionStartedEvent))
+                        {
+                            name = ((ExecutionStartedEvent)taskMessage.Event).Name;
+                        }
 
-                    data.SerializableTraceContext = traceContext.SerializableTraceContext;
+                        var dependencyTraceContext = TraceContextFactory.Create($"{TraceConstants.Orchestrator} {name}");
+                        dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
+                        dependencyTraceContext.SetParentAndStart(traceContext);
+                        dependencyTraceContext.OrchestrationTraceContexts.Push(dependencyTraceContext);
+                        data.SerializableTraceContext = dependencyTraceContext.SerializableTraceContext;
+                    }
+                    else
+                    {
+                        data.SerializableTraceContext = traceContext.SerializableTraceContext;
+                    }
                 }
 
                 var rawContent = await messageManager.SerializeMessageDataAsync(data);

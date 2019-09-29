@@ -174,5 +174,17 @@ namespace DurableTask.Core
         /// HTTP Correlation Protocol
         /// </summary>
         public const string CorrelationProtocolHTTPCorrelationProtocol = "HTTP";
+
+        /// <summary>
+        /// The type of Telemetry of Distributed Tracing
+        /// Request Telemetry
+        /// </summary>
+        public const string RequestTelemetryType = "Request";
+
+        /// <summary>
+        /// The type of Telemetry of Distributed Tracing
+        /// Dependency Telemetry
+        /// </summary>
+        public const string DependencyTelemetryType = "Dependency";
     }
 }

@@ -69,11 +69,17 @@ namespace Correlation.Samples
             // module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("127.0.0.1");
 
             var module = new DependencyTrackingTelemetryModule();
+            // Currently it seems have a problem https://github.com/microsoft/ApplicationInsights-dotnet-server/issues/536
             module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("core.windows.net");
+            module.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("127.0.0.1");
 
             TelemetryConfiguration config = TelemetryConfiguration.CreateDefault();
 #pragma warning disable 618
-            config.TelemetryInitializers.Add(new DurableTaskCorrelationTelemetryInitializer());
+            var telemetryInitializer = new DurableTaskCorrelationTelemetryInitializer();
+            // TODO It should be suppressed by DependencyTrackingTelemetryModule, however, it doesn't work currently.
+            // Once the bug is fixed, remove this settings. 
+            telemetryInitializer.ExcludeComponentCorrelationHttpHeadersOnDomains.Add("127.0.0.1");
+            config.TelemetryInitializers.Add(telemetryInitializer);
 #pragma warning restore 618
             config.InstrumentationKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
 

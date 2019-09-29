@@ -502,11 +502,13 @@ namespace DurableTask.Core
             }
 
             TraceContextBase dependencyTraceContext = TraceContextFactory.Create(TraceConstants.Client);
+            dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
             dependencyTraceContext.SetParentAndStart(requestTraceContext);
 
             CorrelationTraceContext.Current = dependencyTraceContext;
 
             // Correlation
+            CorrelationTraceClient.TrackDepencencyTelemetry(dependencyTraceContext);
             CorrelationTraceClient.TrackRequestTelemetry(requestTraceContext);
 
             // Raised events and create orchestration calls use different methods so get handled separately

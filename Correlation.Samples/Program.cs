@@ -21,7 +21,10 @@ namespace Correlation.Samples
         {
             // Add CI change with new config with debug
             // new HelloWorldScenario().ExecuteAsync().GetAwaiter().GetResult(); // basic sample
-            new MultiLayerOrchestrationWithRetryScenario().ExecuteAsync().GetAwaiter().GetResult(); // complex sample
+            // new SubOrchestratorScenario().ExecuteAsync().GetAwaiter().GetResult();
+            // new RetryScenario().ExecuteAsync().GetAwaiter().GetResult();
+              new MultiLayerOrchestrationWithRetryScenario().ExecuteAsync().GetAwaiter().GetResult(); // complex sample
+            // new FanOutFanInScenario().ExecuteAsync().GetAwaiter().GetResult();
             // new ContinueAsNewScenario().ExecuteAsync().GetAwaiter().GetResult();
             // new TerminationScenario().ExecuteAsync().GetAwaiter().GetResult();
             Console.WriteLine("Orchestration is successfully finished.");

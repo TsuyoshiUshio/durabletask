@@ -14,6 +14,7 @@
 namespace Correlation.Samples
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
@@ -85,11 +86,30 @@ namespace Correlation.Samples
         internal const string LegacyRequestIdProperty = "ai_legacyRequestId";
 
         /// <summary>
+        /// Set of suppress telemetry tracking if you add Host name on this.
+        /// </summary>
+        public HashSet<string> ExcludeComponentCorrelationHttpHeadersOnDomains { get; set; }
+
+        /// <summary>
+        /// Constructor 
+        /// </summary>
+        public DurableTaskCorrelationTelemetryInitializer()
+        {
+            ExcludeComponentCorrelationHttpHeadersOnDomains = new HashSet<string>();
+        }
+
+        /// <summary>
         /// Initializes telemety item.
         /// </summary>
         /// <param name="telemetry">Telemetry item.</param>
         public void Initialize(ITelemetry telemetry)
         {
+            if (IsSuppressedTelemetry(telemetry))
+            {
+                SuppressTelemetry(telemetry);
+                return;
+            }
+
             if (!(telemetry is RequestTelemetry))
             {
                 Activity currentActivity = Activity.Current;
@@ -138,7 +158,9 @@ namespace Correlation.Samples
 
             if (initializeFromCurrent)
             {
-                opTelemetry.Id = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+                if (string.IsNullOrEmpty(opTelemetry.Id))
+                    opTelemetry.Id = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+
                 if (string.IsNullOrEmpty(context.ParentSpanId))
                 {
                     telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, context.ParentSpanId);
@@ -151,8 +173,32 @@ namespace Correlation.Samples
                     telemetry.Context.Operation.Id = traceParent.TraceId;
                 }
 
-                telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+                if (telemetry.Context.Operation.ParentId == null) // TODO check if it works. 
+                {
+                    telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+                }
             }
+        }
+
+        internal void SuppressTelemetry(ITelemetry telemetry)
+        {
+            telemetry.Context.Operation.Id = "suppressed";
+        }
+
+        internal bool IsSuppressedTelemetry(ITelemetry telemetry)
+        {
+            OperationTelemetry opTelemetry = telemetry as OperationTelemetry;
+            if (telemetry is DependencyTelemetry)
+            {
+                DependencyTelemetry dTelemetry = telemetry as DependencyTelemetry;
+
+                if (!string.IsNullOrEmpty(dTelemetry.CommandName))
+                {
+                    var host = new Uri(dTelemetry.CommandName).Host;
+                    if (ExcludeComponentCorrelationHttpHeadersOnDomains.Contains(host)) return true;
+                }                  
+            }
+            return false;
         }
 
         [SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", Justification = "This method has different code for Net45/NetCore")]

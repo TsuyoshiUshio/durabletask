@@ -20,7 +20,7 @@ namespace Correlation.Samples
     using DurableTask.Core;
     using Microsoft.ApplicationInsights.W3C;
 
-    public class HelloWorldScenario
+    class RetryScenario
     {
         public async Task ExecuteAsync()
         {
@@ -35,7 +35,7 @@ namespace Correlation.Samples
                 activity.GenerateW3CContext();
 #pragma warning restore 618
                 activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(HelloOrchestrator), "50"); // TODO The parameter null will throw exception. (for the experiment)
+                var client = await host.StartOrchestrationAsync(typeof(RetryOrchestration), "Retry Scenario"); // TODO The parameter null will throw exception. (for the experiment)
                 var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
 
                 await host.StopAsync();
@@ -43,28 +43,38 @@ namespace Correlation.Samples
         }
     }
 
-    [KnownType(typeof(Hello))]
-    internal class HelloOrchestrator : TaskOrchestration<string, string>
+    [KnownType(typeof(RetryActivity))]
+    [KnownType(typeof(NonRetryActivity))]
+    internal class RetryOrchestration : TaskOrchestration<string, string>
     {
         public override async Task<string> RunTask(OrchestrationContext context, string input)
         {
-          //  await contextBase.ScheduleTask<string>(typeof(Hello), "world");
-          //   if you pass an empty string it throws an error
-            return await context.ScheduleTask<string>(typeof(Hello), "world");
+            await context.ScheduleTask<string>(typeof(NonRetryActivity), input);
+            var retryOption = new RetryOptions(TimeSpan.FromMilliseconds(10), 3);
+            return await context.ScheduleWithRetry<string>(typeof(RetryActivity), retryOption, input);
         }
     }
 
-    internal class Hello : TaskActivity<string, string>
+
+    internal class RetryActivity : TaskActivity<string, string>
+    {
+        private static int counter = 0;
+        protected override string Execute(TaskContext context, string input)
+        {
+            counter++;
+            if (counter == 1) throw new InvalidOperationException($"Counter = {counter}");
+
+            Console.WriteLine($"Retry with Activity: Hello {input}");
+            return $"Retry Hello, {input}!";
+        }
+    }
+
+    internal class NonRetryActivity : TaskActivity<string, string>
     {
         protected override string Execute(TaskContext context, string input)
         {
-            if (string.IsNullOrEmpty(input))
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
-
-            Console.WriteLine($"Activity: Hello {input}");
-            return $"Hello, {input}!";
+            Console.WriteLine($"Non-Retry with Activity: Hello {input}");
+            return $"Works well. Hello, {input}!";
         }
     }
 }

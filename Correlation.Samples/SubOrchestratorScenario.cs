@@ -20,7 +20,7 @@ namespace Correlation.Samples
     using DurableTask.Core;
     using Microsoft.ApplicationInsights.W3C;
 
-    public class HelloWorldScenario
+    class SubOrchestratorScenario
     {
         public async Task ExecuteAsync()
         {
@@ -35,7 +35,7 @@ namespace Correlation.Samples
                 activity.GenerateW3CContext();
 #pragma warning restore 618
                 activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(HelloOrchestrator), "50"); // TODO The parameter null will throw exception. (for the experiment)
+                var client = await host.StartOrchestrationAsync(typeof(ParentOrchestration), "SubOrchestrationWorld"); // TODO The parameter null will throw exception. (for the experiment)
                 var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
 
                 await host.StopAsync();
@@ -43,18 +43,27 @@ namespace Correlation.Samples
         }
     }
 
-    [KnownType(typeof(Hello))]
-    internal class HelloOrchestrator : TaskOrchestration<string, string>
+    [KnownType(typeof(ChildOrchestration))]
+    [KnownType(typeof(ChildActivity))]
+    internal class ParentOrchestration : TaskOrchestration<string, string>
     {
         public override async Task<string> RunTask(OrchestrationContext context, string input)
         {
-          //  await contextBase.ScheduleTask<string>(typeof(Hello), "world");
-          //   if you pass an empty string it throws an error
-            return await context.ScheduleTask<string>(typeof(Hello), "world");
+            return await context.CreateSubOrchestrationInstance<string>(typeof(ChildOrchestration), input);
         }
     }
 
-    internal class Hello : TaskActivity<string, string>
+    [KnownType(typeof(ChildActivity))]
+    internal class ChildOrchestration : TaskOrchestration<string, string>
+    {
+        public override async Task<string> RunTask(OrchestrationContext context, string input)
+        {
+            return await context.ScheduleTask<string>(typeof(ChildActivity), input);
+        }
+    }
+
+
+    internal class ChildActivity : TaskActivity<string, string>
     {
         protected override string Execute(TaskContext context, string input)
         {
@@ -63,8 +72,8 @@ namespace Correlation.Samples
                 throw new ArgumentNullException(nameof(input));
             }
 
-            Console.WriteLine($"Activity: Hello {input}");
-            return $"Hello, {input}!";
+            Console.WriteLine($"SubOrchestration with Activity: Hello {input}");
+            return $"Sub Orchestration Hello, {input}!";
         }
     }
 }

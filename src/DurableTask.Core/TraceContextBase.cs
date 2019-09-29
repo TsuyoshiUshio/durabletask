@@ -40,15 +40,22 @@ namespace DurableTask.Core
         public DateTimeOffset StartTime { get; set; }
 
         /// <summary>
+        /// Type of this telemetry.
+        /// Request Telemetry or Dependency Telemetry.
+        /// Use
+        /// <see cref="FrameworkConstants.RequestTelemetryType"/> or
+        /// <see cref="FrameworkConstants.DependencyTelemetryType" /> 
+        /// </summary>
+        public string TelemetryType { get; set; }
+
+        /// <summary>
         /// OrchestrationState save the state of the 
         /// </summary>
         public Stack<TraceContextBase> OrchestrationTraceContexts { get; set; }
 
         /// <summary>
         /// Keep OperationName in case, don't have an Activity in this context
-        /// This is for sending telemetry, don't serialize this.
         /// </summary>
-        [JsonIgnore]
         public string OperationName { get; set; }
 
         /// <summary>
@@ -98,6 +105,20 @@ namespace DurableTask.Core
         public abstract string TelemetryContextOperationId { get; }
 
         /// <summary>
+        /// Get RequestTraceContext of Current Orchestration
+        /// </summary>
+        /// <returns></returns>
+        public TraceContextBase GetCurrentOrchestrationRequestTraceContext()
+        {
+            foreach(TraceContextBase element in OrchestrationTraceContexts)
+            {
+                if (FrameworkConstants.RequestTelemetryType == element.TelemetryType) return element;
+            }
+
+            throw new InvalidOperationException("Can not find RequestTraceContext");
+        }
+
+        /// <summary>
         /// Telemetry.Context.Operation.ParentId Used for sending telemetry refer this URL
         /// https://docs.microsoft.com/en-us/dotnet/api/microsoft.applicationinsights.extensibility.implementation.operationtelemetry?view=azure-dotnet
         /// </summary>
@@ -142,7 +163,7 @@ namespace DurableTask.Core
                 var typeName = JObject.Parse(json)["$type"];
                 Type traceContextType = Type.GetType(typeName.Value<string>());
 
-                return JsonConvert.DeserializeObject(
+                var restored = JsonConvert.DeserializeObject(
                     json,
                     traceContextType,
                     new JsonSerializerSettings()
@@ -151,6 +172,8 @@ namespace DurableTask.Core
                         PreserveReferencesHandling = PreserveReferencesHandling.Objects,
                         ReferenceLoopHandling = ReferenceLoopHandling.Serialize,
                     }) as TraceContextBase;
+                restored.OrchestrationTraceContexts = new Stack<TraceContextBase>(restored.OrchestrationTraceContexts);
+                return restored;
             }
             else
             {

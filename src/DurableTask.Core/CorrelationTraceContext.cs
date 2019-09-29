@@ -34,6 +34,7 @@ namespace DurableTask.Core
 
 #if NETSTANDARD2_0
         static AsyncLocal<TraceContextBase> current = new AsyncLocal<TraceContextBase>();
+        static AsyncLocal<bool> generateDependencyTracking = new AsyncLocal<bool>(); 
         static AsyncLocal<bool> suppressDependencyTracking = new AsyncLocal<bool>();
         /// <summary>
         /// Share the TraceContext on the call graph contextBase.
@@ -52,10 +53,20 @@ namespace DurableTask.Core
             get { return suppressDependencyTracking.Value; }
             set { suppressDependencyTracking.Value = value; }
         }
+
+        /// <summary>
+        /// Set true if a DependencyTelemetry tracking is generated on the TaskHubQueue.
+        /// </summary>
+        public static bool GenerateDependencyTracking
+        {
+            get { return generateDependencyTracking.Value;  }
+            set { generateDependencyTracking.Value = value; }
+        }
 #else
 
         const string TraceContextCurrentInstance = "TraceContextCurrentInstance";
         const string DependencyTelemetryHasTracked = "DependencyTelemetryHasTracked";
+        const string DependencyTelemetryShouldBeGenerated = "DependencyTelemetyShouldBeGenerated";
 
         /// <summary>
         /// Share the TraceContext on the call graph contextBase.
@@ -100,6 +111,29 @@ namespace DurableTask.Core
             set
             {
                 CallContext.LogicalSetData(DependencyTelemetryHasTracked, (object)new ObjectHandle((object)value));
+            }
+        }
+
+        /// <summary>
+        /// Set true if a DependencyTelemetry tracking is generated on the TaskHubQueue.
+        /// </summary>
+        public static bool GenerateDependencyTracking
+        {
+            [SecuritySafeCritical]
+            get
+            {
+                ObjectHandle data = (ObjectHandle)CallContext.LogicalGetData(DependencyTelemetryShouldBeGenerated);
+                if (data != null)
+                {
+                    return (bool)data.Unwrap();
+                }
+
+                return false;
+            }
+            [SecuritySafeCritical]
+            set
+            {
+                CallContext.LogicalSetData(DependencyTelemetryShouldBeGenerated, (object)new ObjectHandle((object)value));
             }
         }
 #endif

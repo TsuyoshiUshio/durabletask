@@ -16,11 +16,12 @@ namespace Correlation.Samples
     using System;
     using System.Diagnostics;
     using System.Runtime.Serialization;
+    using System.Text;
     using System.Threading.Tasks;
     using DurableTask.Core;
     using Microsoft.ApplicationInsights.W3C;
 
-    public class HelloWorldScenario
+    public class FanOutFanInScenario
     {
         public async Task ExecuteAsync()
         {
@@ -35,7 +36,7 @@ namespace Correlation.Samples
                 activity.GenerateW3CContext();
 #pragma warning restore 618
                 activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(HelloOrchestrator), "50"); // TODO The parameter null will throw exception. (for the experiment)
+                var client = await host.StartOrchestrationAsync(typeof(FanOutFanInOrchestrator), "50"); // TODO The parameter null will throw exception. (for the experiment)
                 var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
 
                 await host.StopAsync();
@@ -43,18 +44,28 @@ namespace Correlation.Samples
         }
     }
 
-    [KnownType(typeof(Hello))]
-    internal class HelloOrchestrator : TaskOrchestration<string, string>
+    [KnownType(typeof(ParallelHello))]
+    internal class FanOutFanInOrchestrator : TaskOrchestration<string, string>
     {
         public override async Task<string> RunTask(OrchestrationContext context, string input)
         {
-          //  await contextBase.ScheduleTask<string>(typeof(Hello), "world");
-          //   if you pass an empty string it throws an error
-            return await context.ScheduleTask<string>(typeof(Hello), "world");
+            Task<string>[] tasks = new Task<string>[3];
+            for (int i = 0; i < 3; i++)
+            {
+                tasks[i] = context.ScheduleTask<string>(typeof(ParallelHello), $"world({i})");
+            }
+            await Task.WhenAll(tasks);
+            var buffer = new StringBuilder();
+            foreach(var task in tasks)
+            {
+                buffer.Append(task.Result);
+                buffer.Append(":");
+            }
+            return buffer.ToString();
         }
     }
 
-    internal class Hello : TaskActivity<string, string>
+    internal class ParallelHello : TaskActivity<string, string>
     {
         protected override string Execute(TaskContext context, string input)
         {
@@ -63,8 +74,8 @@ namespace Correlation.Samples
                 throw new ArgumentNullException(nameof(input));
             }
 
-            Console.WriteLine($"Activity: Hello {input}");
-            return $"Hello, {input}!";
+            Console.WriteLine($"Activity: Parallel Hello {input}");
+            return $"Parrallel Hello, {input}!";
         }
     }
 }

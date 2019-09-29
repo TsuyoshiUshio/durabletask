@@ -109,30 +109,8 @@ namespace DurableTask.AzureStorage.Messaging
                     session?.GetCurrentEpisode() ?? 0);
                 data.SequenceNumber = Interlocked.Increment(ref messageSequenceNumber);
 
-                // correlation
-
-                TraceContextBase traceContext = CorrelationTraceContext.Current;
-                if (traceContext != null)
-                {
-                    if (CorrelationTraceContext.GenerateDependencyTracking)
-                    {
-                        string name = "outbound";
-                        if (taskMessage.Event.GetType() == typeof(ExecutionStartedEvent))
-                        {
-                            name = ((ExecutionStartedEvent)taskMessage.Event).Name;
-                        }
-
-                        var dependencyTraceContext = TraceContextFactory.Create($"{TraceConstants.Orchestrator} {name}");
-                        dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
-                        dependencyTraceContext.SetParentAndStart(traceContext);
-                        dependencyTraceContext.OrchestrationTraceContexts.Push(dependencyTraceContext);
-                        data.SerializableTraceContext = dependencyTraceContext.SerializableTraceContext;
-                    }
-                    else
-                    {
-                        data.SerializableTraceContext = traceContext.SerializableTraceContext;
-                    }
-                }
+                // Inject Correlation TraceContext on a queue.
+                data.SerializableTraceContext = GetSerializableTraceContext(taskMessage);
 
                 var rawContent = await messageManager.SerializeMessageDataAsync(data);
 
@@ -187,6 +165,35 @@ namespace DurableTask.AzureStorage.Messaging
             }
 
             return data;
+        }
+
+        static string GetSerializableTraceContext(TaskMessage taskMessage)
+        {
+
+            TraceContextBase traceContext = CorrelationTraceContext.Current;
+            if (traceContext != null)
+            {
+                if (CorrelationTraceContext.GenerateDependencyTracking)
+                {
+                    string name = "outbound";
+                    if (taskMessage.Event.GetType() == typeof(ExecutionStartedEvent))
+                    {
+                        name = ((ExecutionStartedEvent)taskMessage.Event).Name;
+                    }
+
+                    var dependencyTraceContext = TraceContextFactory.Create($"{TraceConstants.Orchestrator} {name}");
+                    dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
+                    dependencyTraceContext.SetParentAndStart(traceContext);
+                    dependencyTraceContext.OrchestrationTraceContexts.Push(dependencyTraceContext);
+                    return dependencyTraceContext.SerializableTraceContext;
+                }
+                else
+                {
+                    return traceContext.SerializableTraceContext;
+                }
+            }
+            // TODO this might not happen, however, in case happen, introduce NullObjectTraceContext.
+            return null; 
         }
 
         static TimeSpan? GetVisibilityDelay(TaskMessage taskMessage)

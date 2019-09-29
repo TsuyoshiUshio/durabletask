@@ -35,7 +35,6 @@ namespace DurableTask.Core
 #if NETSTANDARD2_0
         static AsyncLocal<TraceContextBase> current = new AsyncLocal<TraceContextBase>();
         static AsyncLocal<bool> generateDependencyTracking = new AsyncLocal<bool>(); 
-        static AsyncLocal<bool> suppressDependencyTracking = new AsyncLocal<bool>();
         /// <summary>
         /// Share the TraceContext on the call graph contextBase.
         /// </summary>
@@ -43,15 +42,6 @@ namespace DurableTask.Core
         {
             get { return current.Value; }
             set { current.Value = value; }
-        }
-
-        /// <summary>
-        /// Set true if the DependencyTelemetry tracking is not required on the TaskHubQueue.
-        /// </summary>
-        public static bool SuppressDependencyTracking
-        {
-            get { return suppressDependencyTracking.Value; }
-            set { suppressDependencyTracking.Value = value; }
         }
 
         /// <summary>
@@ -65,7 +55,6 @@ namespace DurableTask.Core
 #else
 
         const string TraceContextCurrentInstance = "TraceContextCurrentInstance";
-        const string DependencyTelemetryHasTracked = "DependencyTelemetryHasTracked";
         const string DependencyTelemetryShouldBeGenerated = "DependencyTelemetyShouldBeGenerated";
 
         /// <summary>
@@ -88,29 +77,6 @@ namespace DurableTask.Core
             set
             {
                 CallContext.LogicalSetData(TraceContextCurrentInstance, (object)new ObjectHandle((object)value));
-            }
-        }
-
-        /// <summary>
-        /// It is true if the DependencyTelemetry has already tracked.
-        /// </summary>
-        public static bool SuppressDependencyTracking
-        {
-            [SecuritySafeCritical]
-            get
-            {
-                ObjectHandle data = (ObjectHandle)CallContext.LogicalGetData(DependencyTelemetryHasTracked);
-                if (data != null)
-                {
-                    return (bool)data.Unwrap();
-                }
-
-                return false;
-            }
-            [SecuritySafeCritical]
-            set
-            {
-                CallContext.LogicalSetData(DependencyTelemetryHasTracked, (object)new ObjectHandle((object)value));
             }
         }
 

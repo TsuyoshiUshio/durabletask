@@ -341,9 +341,6 @@ namespace DurableTask.Core
                 var taskFailedException = new TaskFailedException(failedEvent.EventId, taskId, info.Name, info.Version,
                     failedEvent.Reason, cause);
 
-                // correlation 
-                CorrelationTraceClient.TrackException(taskFailedException);
-
                 TaskCompletionSource<string> tcs = info.Result;
                 tcs.SetException(taskFailedException);
 
@@ -446,6 +443,8 @@ namespace DurableTask.Core
 
             string reason = failure.Message;
             string details;
+            // correlation 
+            CorrelationTraceClient.TrackException(failure);
             if (failure is OrchestrationFailureException orchestrationFailureException)
             {
                 details = orchestrationFailureException.Details;

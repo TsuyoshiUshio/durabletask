@@ -14,6 +14,7 @@
 namespace DurableTask.AzureStorage.Tests.Correlation
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
@@ -85,11 +86,30 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         internal const string LegacyRequestIdProperty = "ai_legacyRequestId";
 
         /// <summary>
+        /// Set of suppress telemetry tracking if you add Host name on this.
+        /// </summary>
+        public HashSet<string> ExcludeComponentCorrelationHttpHeadersOnDomains { get; set; }
+
+        /// <summary>
+        /// Constructor 
+        /// </summary>
+        public DurableTaskCorrelationTelemetryInitializer()
+        {
+            ExcludeComponentCorrelationHttpHeadersOnDomains = new HashSet<string>();
+        }
+
+        /// <summary>
         /// Initializes telemety item.
         /// </summary>
         /// <param name="telemetry">Telemetry item.</param>
         public void Initialize(ITelemetry telemetry)
         {
+            if (IsSuppressedTelemetry(telemetry))
+            {
+                SuppressTelemetry(telemetry);
+                return;
+            }
+
             if (!(telemetry is RequestTelemetry))
             {
                 Activity currentActivity = Activity.Current;
@@ -159,6 +179,27 @@ namespace DurableTask.AzureStorage.Tests.Correlation
 
                 telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
             }
+        }
+
+        internal void SuppressTelemetry(ITelemetry telemetry)
+        {
+            telemetry.Context.Operation.Id = "suppressed";
+        }
+
+        internal bool IsSuppressedTelemetry(ITelemetry telemetry)
+        {
+            OperationTelemetry opTelemetry = telemetry as OperationTelemetry;
+            if (telemetry is DependencyTelemetry)
+            {
+                DependencyTelemetry dTelemetry = telemetry as DependencyTelemetry;
+
+                if (!string.IsNullOrEmpty(dTelemetry.CommandName))
+                {
+                    var host = new Uri(dTelemetry.CommandName).Host;
+                    if (ExcludeComponentCorrelationHttpHeadersOnDomains.Contains(host)) return true;
+                }
+            }
+            return false;
         }
 
         [SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", Justification = "This method has different code for Net45/NetCore")]

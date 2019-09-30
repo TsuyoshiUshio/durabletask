@@ -24,5 +24,10 @@ namespace DurableTask.Core
         /// </summary>
         public const string Activity = "DtActivity";
 
+        /// <summary>
+        /// DependencyDefault is the Distributed Tracing message default name for Dependency.
+        /// </summary>
+        public const string DependencyDefault = "outbound";
+
     }
 }

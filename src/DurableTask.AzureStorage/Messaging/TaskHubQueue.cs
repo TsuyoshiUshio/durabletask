@@ -16,6 +16,7 @@ namespace DurableTask.AzureStorage.Messaging
 {
     using System;
     using System.Diagnostics;
+    using System.Reflection;
     using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading;
@@ -175,11 +176,8 @@ namespace DurableTask.AzureStorage.Messaging
             {
                 if (CorrelationTraceContext.GenerateDependencyTracking)
                 {
-                    string name = "outbound";
-                    if (taskMessage.Event.GetType() == typeof(ExecutionStartedEvent))
-                    {
-                        name = ((ExecutionStartedEvent)taskMessage.Event).Name;
-                    }
+                    PropertyInfo nameProperty = taskMessage.Event.GetType().GetProperty("Name");
+                    string name = (nameProperty == null) ? TraceConstants.DependencyDefault : (string)nameProperty.GetValue(taskMessage.Event);
 
                     var dependencyTraceContext = TraceContextFactory.Create($"{TraceConstants.Orchestrator} {name}");
                     dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;

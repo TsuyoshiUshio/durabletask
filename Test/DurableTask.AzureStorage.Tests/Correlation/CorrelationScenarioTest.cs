@@ -37,18 +37,22 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task SingleOrchestratorWithSingleActivityAsync()
         {
             var host = new TestCorrelationOrchestrationHost();
-            List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloActivity), "world", 360);
-            Assert.AreEqual(6, actual.Count);
-            Assert.AreEqual(TraceConstants.Client, actual[0].Name); // Start Orchestration
-            Assert.AreEqual(TraceConstants.Client, actual[1].Name); // Start Orchestration Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SayHelloActivity", actual[2].Name); // Orchestrator start
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[3].Name); // Activity Start
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[4].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SayHelloActivity", actual[5].Name); // Orchestrator Stop
+            List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloOrchestrator), "world", 360);
+            Assert.AreEqual(5, actual.Count);
+
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} SayHelloOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello")
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
         }
 
         [KnownType(typeof(Hello))]
-        internal class SayHelloActivity : TaskOrchestration<string, string>
+        internal class SayHelloOrchestrator : TaskOrchestration<string, string>
         {
             public override Task<string> RunTask(OrchestrationContext context, string input)
             {
@@ -75,22 +79,27 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         {
             var host = new TestCorrelationOrchestrationHost();
             // parameter = null cause an exception. 
-            Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> result = await host.ExecuteOrchestrationWithExceptionAsync(typeof(SayHelloActivity), null, 50);
+            Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> result = await host.ExecuteOrchestrationWithExceptionAsync(typeof(SayHelloOrchestrator), null, 50);
 
             List<OperationTelemetry> actual = result.Item1;
             List<ExceptionTelemetry> actualExceptions = result.Item2;
 
-            Assert.AreEqual(6, actual.Count);
-            var index = 0;
-            Assert.AreEqual(TraceConstants.Client, actual[index].Name); // Start Orchestration Request
-            Assert.AreEqual(TraceConstants.Client, actual[++index].Name); // Start Orchestration Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SayHelloActivity", actual[++index].Name); // Orchestrator Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SayHelloActivity", actual[++index].Name); // Orchestrator Dependency            
+            Assert.AreEqual(5, actual.Count);
 
-            Assert.AreEqual(actualExceptions[0].Context.Operation.ParentId, actual[3].Id);
-            Assert.AreEqual(actualExceptions[1].Context.Operation.ParentId, actual[2].Id);
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} SayHelloOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello")
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
+
+            CollectionAssert.AreEqual(
+                actualExceptions.Select(x => x.Context.Operation.ParentId).ToList(),
+                new string[] { actual[4].Id, actual[2].Id }
+                );
         }
 
         [TestMethod]
@@ -98,33 +107,20 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         {
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloActivities), "world", 50);
-            Assert.AreEqual(8, actual.Count);
+            Assert.AreEqual(7, actual.Count);
 
-            // Client Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[0].GetType().ToString());
-            Assert.AreEqual(TraceConstants.Client, actual[0].Name);
-            // Client Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[1].GetType().ToString());
-            Assert.AreEqual(TraceConstants.Client, actual[1].Name);
-            // Orchestrator Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[2].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SayHelloActivities", actual[2].Name);
-            // Activity 1 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[3].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} HelloWait", actual[3].Name);
-            // Activity 1 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[4].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} HelloWait", actual[4].Name);
-            // Activity 2 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[5].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} HelloWait", actual[5].Name);
-            // Activity 2 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[6].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} HelloWait", actual[6].Name);
-            // Orchestrator Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[7].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SayHelloActivities", actual[7].Name);
-        }
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} SayHelloActivities"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(HelloWait).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} HelloWait"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(HelloWait).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} HelloWait")
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
+         }
 
         [KnownType(typeof(HelloWait))]
         internal class SayHelloActivities : TaskOrchestration<string, string>
@@ -165,31 +161,18 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         {
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(ParentOrchestrator), "world", 50);
-            Assert.AreEqual(8, actual.Count);
-            // Client Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[0].GetType().ToString());
-            Assert.AreEqual(TraceConstants.Client, actual[0].Name);
-            // Client Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[1].GetType().ToString());
-            Assert.AreEqual(TraceConstants.Client, actual[1].Name);
-            // Orchestrator Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[2].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ParentOrchestrator", actual[2].Name);
-            // Activity 1 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[3].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestrator", actual[3].Name);
-            // Activity 1 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[4].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[4].Name);
-            // Activity 2 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[5].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[5].Name);
-            // Activity 2 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[6].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestrator", actual[6].Name);
-            // Orchestrator Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[7].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ParentOrchestrator", actual[7].Name);
+            Assert.AreEqual(7, actual.Count);
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ParentOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(ChildOrchestrator).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ChildOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello")
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
         }
 
         [KnownType(typeof(ChildOrchestrator))]
@@ -216,49 +199,25 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         {
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(ParentOrchestratorWithMultiLayeredSubOrchestrator), "world", 50);
-            Assert.AreEqual(14, actual.Count);
-            // Client Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[0].GetType().ToString());
-            Assert.AreEqual(TraceConstants.Client, actual[0].Name);
-            // Client Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[1].GetType().ToString());
-            Assert.AreEqual(TraceConstants.Client, actual[1].Name);
-            // Parent Orchestrator Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[2].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ParentOrchestratorWithMultiLayeredSubOrchestrator", actual[2].Name);
-            // Child Orchestrator Level 1 1 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[3].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestratorWithMultiSubOrchestrator", actual[3].Name);
-            // Child Orchestrator Level 2 1 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[4].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestrator", actual[4].Name);
-            // Activity 1 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[5].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[5].Name);
-            // Activity 1 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[6].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[6].Name);
-            // Child Orchestrator Level 2 1 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[7].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestrator", actual[7].Name);
-            // Child Orchestrator Level 2 2 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[8].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestrator", actual[8].Name);
-            // Activity 2 Request
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.RequestTelemetry", actual[9].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[9].Name);
-            // Activity 2 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[10].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[10].Name);
-            // Child Orchestrator Level 2 2 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[11].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestrator", actual[11].Name);
-            // Child Orchestrator Level 1 1 Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[12].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ChildOrchestratorWithMultiSubOrchestrator", actual[12].Name);
-            // Orchestrator Dependency
-            Assert.AreEqual("Microsoft.ApplicationInsights.DataContracts.DependencyTelemetry", actual[13].GetType().ToString());
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ParentOrchestratorWithMultiLayeredSubOrchestrator", actual[13].Name);
+            Assert.AreEqual(13, actual.Count);
+
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ParentOrchestratorWithMultiLayeredSubOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(ChildOrchestratorWithMultiSubOrchestrator).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ChildOrchestratorWithMultiSubOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(ChildOrchestrator).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ChildOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(ChildOrchestrator).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ChildOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
+            }, actual.Select(x => (x.GetType(), x.Name)).ToList());
         }
 
         [KnownType(typeof(ChildOrchestratorWithMultiSubOrchestrator))]
@@ -293,18 +252,23 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> resultTuple = await host.ExecuteOrchestrationWithExceptionAsync(typeof(SingleOrchestrationWithRetry), "world", 50);
             List<OperationTelemetry> actual = resultTuple.Item1;
             List<ExceptionTelemetry> actualExceptions = resultTuple.Item2;
-            Assert.AreEqual(8, actual.Count);
-            Assert.AreEqual(TraceConstants.Client, actual[0].Name); // Start Orchestration
-            Assert.AreEqual(TraceConstants.Client, actual[1].Name); // Start Orchestration Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SingleOrchestrationWithRetry", actual[2].Name); // Orchestrator start
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice", actual[3].Name); // Activity Start
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice", actual[4].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice", actual[5].Name); // Activity Start
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice", actual[6].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} SingleOrchestrationWithRetry", actual[7].Name); // Orchestrator Stop
 
-            Assert.AreEqual(actualExceptions[0].Context.Operation.ParentId, actual[3].Id);
-            Assert.AreEqual(actualExceptions[1].Context.Operation.ParentId, actual[2].Id);
+            Assert.AreEqual(7, actual.Count);
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} SingleOrchestrationWithRetry"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice")
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
+
+            CollectionAssert.AreEqual(
+                actualExceptions.Select(x => x.Context.Operation.ParentId).ToList(),
+                new string[] { actual[4].Id });
         }
 
         [KnownType(typeof(NeedToExecuteTwice))]
@@ -340,33 +304,35 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> resultTuple = await host.ExecuteOrchestrationWithExceptionAsync(typeof(MultiLayeredOrchestrationWithRetry), "world", 50);
             List<OperationTelemetry> actual = resultTuple.Item1;
             List<ExceptionTelemetry> actualExceptions = resultTuple.Item2;
-            Assert.AreEqual(20, actual.Count);
-            var index = 0;
-            Assert.AreEqual(TraceConstants.Client, actual[index].Name); // Start Orchestration Request
-            Assert.AreEqual(TraceConstants.Client, actual[++index].Name); // Start Orchestration Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationWithRetry", actual[++index].Name); // Orchestrator Request
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry", actual[++index].Name); // Orchestrator Request
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice01", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice01", actual[++index].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry", actual[++index].Name); // Orchestrator Dependency 
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry", actual[++index].Name); // Orchestrator Request Retry
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice01", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice01", actual[++index].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice02", actual[++index].Name); // Activity finish Request
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice02", actual[++index].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry", actual[++index].Name); // Orchestrator Dependency Retry
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry", actual[++index].Name); // Orchestrator Request Retry
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice01", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice01", actual[++index].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice02", actual[++index].Name); // Activity finish Request
-            Assert.AreEqual($"{TraceConstants.Activity} NeedToExecuteTwice02", actual[++index].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry", actual[++index].Name); // Orchestrator dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiLayeredOrchestrationWithRetry", actual[++index].Name); // Orchestrator dependency
+            Assert.AreEqual(19, actual.Count);
 
-            Assert.AreEqual(actualExceptions[0].Context.Operation.ParentId, actual[4].Id);
-            Assert.AreEqual(actualExceptions[1].Context.Operation.ParentId, actual[3].Id);
-            Assert.AreEqual(actualExceptions[2].Context.Operation.ParentId, actual[10].Id);
-            Assert.AreEqual(actualExceptions[3].Context.Operation.ParentId, actual[7].Id);
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} MultiLayeredOrchestrationWithRetry"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(MultiLayeredOrchestrationChildWithRetry).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice01).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice01"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(MultiLayeredOrchestrationChildWithRetry).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice01).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice01"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice02).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice02"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(MultiLayeredOrchestrationChildWithRetry).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} MultiLayeredOrchestrationChildWithRetry"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice01).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice01"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(NeedToExecuteTwice02).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} NeedToExecuteTwice02"),
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
+
+            CollectionAssert.AreEqual(
+                actualExceptions.Select(x => x.Context.Operation.ParentId).ToList(),
+                new string[] { actual[6].Id , actual[4].Id, actual[12].Id, actual[8].Id});
         }
 
         [KnownType(typeof(MultiLayeredOrchestrationChildWithRetry))]
@@ -432,20 +398,24 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         {
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(ContinueAsNewOrchestration), "world", 50);
-            Assert.AreEqual(12, actual.Count);
-            var index = 0;
-            Assert.AreEqual(TraceConstants.Client, actual[index].Name); // Start Orchestration Request
-            Assert.AreEqual(TraceConstants.Client, actual[++index].Name); // Start Orchestration Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ContinueAsNewOrchestration", actual[++index].Name); // Orchestrator Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Dependency
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Dependency
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Dependency
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity Request
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[++index].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} ContinueAsNewOrchestration", actual[++index].Name); // Orchestrator Dependency
+            Assert.AreEqual(11, actual.Count);
+
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} ContinueAsNewOrchestration"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
+
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
         }
 
         [KnownType(typeof(Hello))]
@@ -484,13 +454,16 @@ namespace DurableTask.AzureStorage.Tests.Correlation
 
             List<OperationTelemetry> actual = Convert(tasks[0]);
 
-            Assert.AreEqual(6, actual.Count);
-            Assert.AreEqual(TraceConstants.Client, actual[0].Name); // Start Orchestration
-            Assert.AreEqual(TraceConstants.Client, actual[1].Name); // Start Orchestration Dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiParentOrchestrator", actual[2].Name); // Orchestrator start
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[3].Name); // Activity Start
-            Assert.AreEqual($"{TraceConstants.Activity} Hello", actual[4].Name); // Activity finish dependency
-            Assert.AreEqual($"{TraceConstants.Orchestrator} MultiParentOrchestrator", actual[5].Name); // Orchestrator Stop
+            Assert.AreEqual(5, actual.Count);
+            CollectionAssert.AreEqual(
+                new (Type, string)[]
+                {
+                    (typeof(RequestTelemetry), TraceConstants.Client),
+                    (typeof(DependencyTelemetry), TraceConstants.Client),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Orchestrator} MultiParentOrchestrator"),
+                    (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
+                    (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello")
+                }, actual.Select(x => (x.GetType(), x.Name)).ToList());
         }
 
         bool IsNotReadyForRaiseEvent(TestOrchestrationClient client)

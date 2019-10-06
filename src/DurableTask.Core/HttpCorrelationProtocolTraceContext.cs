@@ -42,7 +42,6 @@ namespace DurableTask.Core
         /// <inheritdoc />
         public override void SetParentAndStart(TraceContextBase parentTraceContext)
         {
-            
             CurrentActivity = new Activity(this.OperationName);
 
             if (parentTraceContext is HttpCorrelationProtocolTraceContext)

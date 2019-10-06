@@ -14,36 +14,9 @@
 namespace Correlation.Samples
 {
     using System;
-    using System.Diagnostics;
     using System.Runtime.Serialization;
     using System.Threading.Tasks;
     using DurableTask.Core;
-    using Microsoft.ApplicationInsights.W3C;
-
-    public class TerminationScenario
-    {
-        public async Task ExecuteAsync()
-        {
-            new TelemetryActivator().Initialize();
-
-            using (
-                TestOrchestrationHost host = TestHelpers.GetTestOrchestrationHost(false))
-            {
-                await host.StartAsync();
-                var activity = new Activity("Start Orchestration");
-#pragma warning disable 618
-                activity.GenerateW3CContext();
-#pragma warning restore 618
-                activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(TerminatedOrchestration), "50"); // TODO The parameter null will throw exception. (for the experiment)
-                await Task.Delay(TimeSpan.FromSeconds(10));
-                await client.TerminateAsync("I'd like to stop it.");
-                var status = await client.WaitForCompletionAsync(TimeSpan.FromMinutes(10));
-
-                await host.StopAsync();
-            }
-        }
-    }
 
     [KnownType(typeof(WaitActivity))]
     internal class TerminatedOrchestration : TaskOrchestration<string, string>
@@ -63,7 +36,7 @@ namespace Correlation.Samples
 
         protected override async Task<string> ExecuteAsync(TaskContext context, string input) {
             // Wait for 5 min for terminate. 
-            await Task.Delay(TimeSpan.FromMinutes(1));
+            await Task.Delay(TimeSpan.FromMinutes(2));
 
             Console.WriteLine($"Activity: Hello {input}");
             return $"Hello, {input}!";

@@ -14,34 +14,9 @@
 namespace Correlation.Samples
 {
     using System;
-    using System.Diagnostics;
     using System.Runtime.Serialization;
     using System.Threading.Tasks;
     using DurableTask.Core;
-    using Microsoft.ApplicationInsights.W3C;
-
-    class RetryScenario
-    {
-        public async Task ExecuteAsync()
-        {
-            new TelemetryActivator().Initialize();
-
-            using (
-                TestOrchestrationHost host = TestHelpers.GetTestOrchestrationHost(false))
-            {
-                await host.StartAsync();
-                var activity = new Activity("Start Orchestration");
-#pragma warning disable 618
-                activity.GenerateW3CContext();
-#pragma warning restore 618
-                activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(RetryOrchestration), "Retry Scenario"); // TODO The parameter null will throw exception. (for the experiment)
-                var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
-
-                await host.StopAsync();
-            }
-        }
-    }
 
     [KnownType(typeof(RetryActivity))]
     [KnownType(typeof(NonRetryActivity))]
@@ -55,10 +30,10 @@ namespace Correlation.Samples
         }
     }
 
-
     internal class RetryActivity : TaskActivity<string, string>
     {
         private static int counter = 0;
+
         protected override string Execute(TaskContext context, string input)
         {
             counter++;

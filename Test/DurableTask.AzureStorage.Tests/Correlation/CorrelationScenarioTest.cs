@@ -414,7 +414,6 @@ namespace DurableTask.AzureStorage.Tests.Correlation
                     (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
                     (typeof(DependencyTelemetry), $"{TraceConstants.Orchestrator} {typeof(Hello).FullName}"),
                     (typeof(RequestTelemetry), $"{TraceConstants.Activity} Hello"),
-
                 }, actual.Select(x => (x.GetType(), x.Name)).ToList());
         }
 

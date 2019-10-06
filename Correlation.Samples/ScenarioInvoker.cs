@@ -18,11 +18,12 @@ namespace Correlation.Samples
     using System.Runtime.Serialization;
     using System.Threading.Tasks;
     using DurableTask.Core;
+    using DurableTask.Core.Settings;
     using Microsoft.ApplicationInsights.W3C;
 
-    public class ContinueAsNewScenario
+    public class ScenarioInvoker
     {
-        public async Task ExecuteAsync()
+        public async Task ExecuteAsync(Type orchestratorType, object orchestratorInput, int timeoutSec)
         {
             new TelemetryActivator().Initialize();
 
@@ -31,48 +32,29 @@ namespace Correlation.Samples
             {
                 await host.StartAsync();
                 var activity = new Activity("Start Orchestration");
-#pragma warning disable 618
-                activity.GenerateW3CContext();
-#pragma warning restore 618
+                SetupActivity(activity);
                 activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(ContinueAsNewOrchestration), "50"); // TODO The parameter null will throw exception. (for the experiment)
-                var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
+                var client = await host.StartOrchestrationAsync(orchestratorType, orchestratorInput); // TODO The parameter null will throw exception. (for the experiment)
+                var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(timeoutSec));
 
                 await host.StopAsync();
             }
         }
-    }
 
-    [KnownType(typeof(HelloActivity))]
-    internal class ContinueAsNewOrchestration : TaskOrchestration<string, string>
-    {
-        static int counter = 0;
-
-        public override async Task<string> RunTask(OrchestrationContext context, string input)
+        void SetupActivity(Activity activity)
         {
-            string result = await context.ScheduleTask<string>(typeof(HelloActivity), input);
-            result = input + ":" + result;
-            if (counter < 3)
+            var protocol = Environment.GetEnvironmentVariable("CorrelationProtocol");
+            switch (protocol)
             {
-                counter++;
-                context.ContinueAsNew(result);
+                case "HTTP":
+                    CorrelationSettings.Current = new CorrelationSettings() { Protocol = FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol };
+                    return;
+                default:
+#pragma warning disable 618
+                    activity.GenerateW3CContext();
+#pragma warning restore 618
+                    return;
             }
-
-            return result;
-        }
-    }
-
-    internal class HelloActivity : TaskActivity<string, string>
-    {
-        protected override string Execute(TaskContext context, string input)
-        {
-            if (string.IsNullOrEmpty(input))
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
-
-            Console.WriteLine($"Activity: Hello {input}");
-            return $"Hello, {input}!";
         }
     }
 }

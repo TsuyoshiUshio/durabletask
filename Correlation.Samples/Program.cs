@@ -19,16 +19,21 @@ namespace Correlation.Samples
     {
         static void Main(string[] args)
         {
-            // Add CI change with new config with debug
-            // new HelloWorldScenario().ExecuteAsync().GetAwaiter().GetResult(); // basic sample
-            // new SubOrchestratorScenario().ExecuteAsync().GetAwaiter().GetResult();
-            // new RetryScenario().ExecuteAsync().GetAwaiter().GetResult();
-              new MultiLayerOrchestrationWithRetryScenario().ExecuteAsync().GetAwaiter().GetResult(); // complex sample
-            // new FanOutFanInScenario().ExecuteAsync().GetAwaiter().GetResult();
-            // new ContinueAsNewScenario().ExecuteAsync().GetAwaiter().GetResult();
-            // new TerminationScenario().ExecuteAsync().GetAwaiter().GetResult();
+            InvokeScenario(typeof(HelloOrchestrator), "50", 50); // HelloWorldScenario.cs;
+            // InvokeScenario(typeof(SubOrchestratorOrchestration), "SubOrchestrationWorld", 50);  // SubOrchestratorScenario.cs;
+            // InvokeScenario(typeof(RetryOrchestration), "Retry Scenario", 50); // RetryScenario.cs;
+            // InvokeScenario(typeof(MultiLayeredOrchestrationWithRetryOrchestrator), "world", 50); // MultiLayerOrchestrationWithRetryScenario.cs;
+            // InvokeScenario(typeof(FanOutFanInOrchestrator), "50", 50); // FanOutFanInScenario.cs;
+            // InvokeScenario(typeof(ContinueAsNewOrchestration), "50", 50); // ContinueAsNewScenario.cs;
+            // InvokeScenario(typeof(TerminatedOrchestration), "50", 50); // TerminationScenario.cs;
+
             Console.WriteLine("Orchestration is successfully finished.");
             Console.ReadLine();
+        }
+
+        static void InvokeScenario(Type orchestratorType, object orchestratorInput, int timeoutSec)
+        {
+            new ScenarioInvoker().ExecuteAsync(orchestratorType, orchestratorInput, timeoutSec).GetAwaiter().GetResult();
         }
     }
 }

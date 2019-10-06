@@ -13,40 +13,15 @@
 
 namespace Correlation.Samples
 {
-    using System.Diagnostics;
     using System.Runtime.Serialization;
     using System.Threading.Tasks;
     using DurableTask.Core;
-    using Microsoft.ApplicationInsights.W3C;
     using System;
-
-    public class MultiLayerOrchestrationWithRetryScenario
-    {
-        public async Task ExecuteAsync()
-        {
-            new TelemetryActivator().Initialize();
-
-            using (
-                TestOrchestrationHost host = TestHelpers.GetTestOrchestrationHost(false))
-            {
-                await host.StartAsync();
-                var activity = new Activity("Start Orchestration");
-#pragma warning disable 618
-                activity.GenerateW3CContext();
-#pragma warning restore 618
-                activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(MultiLayeredOrchestrationWithRetry), "world"); // TODO The parameter null will throw exception. (for the experiment)
-                var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
-
-                await host.StopAsync();
-            }
-        }
-    }
 
     [KnownType(typeof(MultiLayeredOrchestrationChildWithRetry))]
     [KnownType(typeof(NeedToExecuteTwice01))]
     [KnownType(typeof(NeedToExecuteTwice02))]
-    internal class MultiLayeredOrchestrationWithRetry : TaskOrchestration<string, string>
+    internal class MultiLayeredOrchestrationWithRetryOrchestrator : TaskOrchestration<string, string>
     {
         public override Task<string> RunTask(OrchestrationContext context, string input)
         {

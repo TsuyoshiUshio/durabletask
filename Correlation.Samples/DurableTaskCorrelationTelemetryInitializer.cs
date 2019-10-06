@@ -20,6 +20,7 @@ namespace Correlation.Samples
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using DurableTask.Core;
+    using ImpromptuInterface;
     using Microsoft.ApplicationInsights.Channel;
     using Microsoft.ApplicationInsights.Common;
     using Microsoft.ApplicationInsights.DataContracts;
@@ -136,8 +137,50 @@ namespace Correlation.Samples
 
         internal static void UpdateTelemetry(ITelemetry telemetry, TraceContextBase contextBase)
         {
+            switch (contextBase)
+            {
+                case NullObjectTraceContext nullObjectContext:
+                    return;
+                case W3CTraceContext w3cContext:
+                    UpdateTelemetryW3C(telemetry, w3cContext);
+                    break;
+                case HttpCorrelationProtocolTraceContext httpCorrelationProtocolTraceContext:
+                    UpdateTelemetryHttpCorrelationProtocol(telemetry, httpCorrelationProtocolTraceContext);
+                    break;
+                default:
+                    return;
+            }
+        }
+
+        internal static void UpdateTelemetryHttpCorrelationProtocol(ITelemetry telemetry, HttpCorrelationProtocolTraceContext context)
+        {
             OperationTelemetry opTelemetry = telemetry as OperationTelemetry;
-            W3CTraceContext context = (W3CTraceContext)contextBase;
+
+            bool initializeFromCurrent = opTelemetry != null;
+
+            if (initializeFromCurrent)
+            {
+                initializeFromCurrent &= !(opTelemetry is DependencyTelemetry dependency &&
+                    dependency.Type == SqlRemoteDependencyType &&
+                    dependency.Context.GetInternalContext().SdkVersion
+                        .StartsWith(RddDiagnosticSourcePrefix, StringComparison.Ordinal));
+            }
+
+            if (initializeFromCurrent)
+            {
+                opTelemetry.Id = !string.IsNullOrEmpty(opTelemetry.Id) ? opTelemetry.Id : context.TelemetryId;
+                telemetry.Context.Operation.ParentId = !string.IsNullOrEmpty(telemetry.Context.Operation.ParentId) ? telemetry.Context.Operation.ParentId : context.TelemetryContextOperationParentId;
+            }
+            else
+            {
+                telemetry.Context.Operation.Id = !string.IsNullOrEmpty(telemetry.Context.Operation.Id) ? telemetry.Context.Operation.Id : context.TelemetryContextOperationId;
+                telemetry.Context.Operation.ParentId = !string.IsNullOrEmpty(telemetry.Context.Operation.ParentId) ? telemetry.Context.Operation.ParentId : context.TelemetryContextOperationParentId;
+            }
+        }
+
+        internal static void UpdateTelemetryW3C(ITelemetry telemetry, W3CTraceContext context)
+        {
+            OperationTelemetry opTelemetry = telemetry as OperationTelemetry;
 
             bool initializeFromCurrent = opTelemetry != null;
 
@@ -182,7 +225,20 @@ namespace Correlation.Samples
 
         internal void SuppressTelemetry(ITelemetry telemetry)
         {
+            // TODO change the strategy.
             telemetry.Context.Operation.Id = "suppressed";
+            telemetry.Context.Operation.ParentId = "suppressed";
+            // Context. Properties.  ai_legacyRequestId , ai_legacyRequestId
+            foreach (var key in telemetry.Context.Properties.Keys)
+            {
+                if (key == "ai_legacyRootId" ||
+                    key == "ai_legacyRequestId")
+                {
+                    telemetry.Context.Properties[key] = "suppressed";
+                }
+            }
+
+            ((OperationTelemetry)telemetry).Id = "suppressed";
         }
 
         internal bool IsSuppressedTelemetry(ITelemetry telemetry)
@@ -198,6 +254,7 @@ namespace Correlation.Samples
                     if (ExcludeComponentCorrelationHttpHeadersOnDomains.Contains(host)) return true;
                 }                  
             }
+
             return false;
         }
 

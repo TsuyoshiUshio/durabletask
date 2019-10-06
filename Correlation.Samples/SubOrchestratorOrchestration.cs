@@ -14,38 +14,13 @@
 namespace Correlation.Samples
 {
     using System;
-    using System.Diagnostics;
     using System.Runtime.Serialization;
     using System.Threading.Tasks;
     using DurableTask.Core;
-    using Microsoft.ApplicationInsights.W3C;
-
-    class SubOrchestratorScenario
-    {
-        public async Task ExecuteAsync()
-        {
-            new TelemetryActivator().Initialize();
-
-            using (
-                TestOrchestrationHost host = TestHelpers.GetTestOrchestrationHost(false))
-            {
-                await host.StartAsync();
-                var activity = new Activity("Start Orchestration");
-#pragma warning disable 618
-                activity.GenerateW3CContext();
-#pragma warning restore 618
-                activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(ParentOrchestration), "SubOrchestrationWorld"); // TODO The parameter null will throw exception. (for the experiment)
-                var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
-
-                await host.StopAsync();
-            }
-        }
-    }
 
     [KnownType(typeof(ChildOrchestration))]
     [KnownType(typeof(ChildActivity))]
-    internal class ParentOrchestration : TaskOrchestration<string, string>
+    internal class SubOrchestratorOrchestration : TaskOrchestration<string, string>
     {
         public override async Task<string> RunTask(OrchestrationContext context, string input)
         {

@@ -14,46 +14,22 @@
 namespace Correlation.Samples
 {
     using System;
-    using System.Diagnostics;
     using System.Runtime.Serialization;
     using System.Text;
     using System.Threading.Tasks;
     using DurableTask.Core;
-    using Microsoft.ApplicationInsights.W3C;
-
-    public class FanOutFanInScenario
-    {
-        public async Task ExecuteAsync()
-        {
-            new TelemetryActivator().Initialize();
-
-            using (
-                TestOrchestrationHost host = TestHelpers.GetTestOrchestrationHost(false))
-            {
-                await host.StartAsync();
-                var activity = new Activity("Start Orchestration");
-#pragma warning disable 618
-                activity.GenerateW3CContext();
-#pragma warning restore 618
-                activity.Start();
-                var client = await host.StartOrchestrationAsync(typeof(FanOutFanInOrchestrator), "50"); // TODO The parameter null will throw exception. (for the experiment)
-                var status = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(50));
-
-                await host.StopAsync();
-            }
-        }
-    }
 
     [KnownType(typeof(ParallelHello))]
     internal class FanOutFanInOrchestrator : TaskOrchestration<string, string>
     {
         public override async Task<string> RunTask(OrchestrationContext context, string input)
         {
-            Task<string>[] tasks = new Task<string>[3];
+            var tasks = new Task<string>[3];
             for (int i = 0; i < 3; i++)
             {
                 tasks[i] = context.ScheduleTask<string>(typeof(ParallelHello), $"world({i})");
             }
+
             await Task.WhenAll(tasks);
             var buffer = new StringBuilder();
             foreach(var task in tasks)
@@ -61,6 +37,7 @@ namespace Correlation.Samples
                 buffer.Append(task.Result);
                 buffer.Append(":");
             }
+
             return buffer.ToString();
         }
     }
@@ -75,7 +52,7 @@ namespace Correlation.Samples
             }
 
             Console.WriteLine($"Activity: Parallel Hello {input}");
-            return $"Parrallel Hello, {input}!";
+            return $"Parallel Hello, {input}!";
         }
     }
 }

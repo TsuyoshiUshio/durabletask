@@ -20,6 +20,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using DurableTask.Core;
+    using DurableTask.Core.Settings;
     using Microsoft.ApplicationInsights.Channel;
     using Microsoft.ApplicationInsights.Common;
     using Microsoft.ApplicationInsights.DataContracts;
@@ -113,6 +114,11 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             if (!(telemetry is RequestTelemetry))
             {
                 Activity currentActivity = Activity.Current;
+                if (telemetry is ExceptionTelemetry)
+                {
+                    Console.WriteLine("exception!");
+                }
+
                 if (currentActivity == null)
                 {
                     if (CorrelationTraceContext.Current != null)
@@ -126,9 +132,13 @@ namespace DurableTask.AzureStorage.Tests.Correlation
                     {
                         UpdateTelemetry(telemetry, CorrelationTraceContext.Current);
                     }
-                    else
+                    else if (CorrelationSettings.Current.Protocol == FrameworkConstants.CorrelationProtocolW3CTraceContext)
                     {
                         UpdateTelemetry(telemetry, currentActivity, false);
+                    } else if (CorrelationSettings.Current.Protocol == FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol
+                        && telemetry is ExceptionTelemetry)
+                    {
+                        UpdateTelemetryExceptionForHTTPCorrelationProtocol((ExceptionTelemetry)telemetry, currentActivity);
                     }
                 }
             }
@@ -136,14 +146,56 @@ namespace DurableTask.AzureStorage.Tests.Correlation
 
         internal static void UpdateTelemetry(ITelemetry telemetry, TraceContextBase contextBase)
         {
+            switch (contextBase)
+            {
+                case NullObjectTraceContext nullObjectContext:
+                    return;
+                case W3CTraceContext w3cContext:
+                    UpdateTelemetryW3C(telemetry, w3cContext);
+                    break;
+                case HttpCorrelationProtocolTraceContext httpCorrelationProtocolTraceContext:
+                    UpdateTelemetryHttpCorrelationProtocol(telemetry, httpCorrelationProtocolTraceContext);
+                    break;
+                default:
+                    return;
+            }
+        }
+
+        internal static void UpdateTelemetryHttpCorrelationProtocol(ITelemetry telemetry, HttpCorrelationProtocolTraceContext context)
+        {
             OperationTelemetry opTelemetry = telemetry as OperationTelemetry;
 
-            if (!(contextBase is W3CTraceContext))
+            bool initializeFromCurrent = opTelemetry != null;
+
+            if (initializeFromCurrent)
             {
-                return;
+                initializeFromCurrent &= !(opTelemetry is DependencyTelemetry dependency &&
+                    dependency.Type == SqlRemoteDependencyType &&
+                    dependency.Context.GetInternalContext().SdkVersion
+                        .StartsWith(RddDiagnosticSourcePrefix, StringComparison.Ordinal));
             }
 
-            W3CTraceContext context = (W3CTraceContext)contextBase;
+            if (initializeFromCurrent)
+            {
+                opTelemetry.Id = !string.IsNullOrEmpty(opTelemetry.Id) ? opTelemetry.Id : context.TelemetryId;
+                telemetry.Context.Operation.ParentId = !string.IsNullOrEmpty(telemetry.Context.Operation.ParentId) ? telemetry.Context.Operation.ParentId : context.TelemetryContextOperationParentId;
+            }
+            else
+            {
+                telemetry.Context.Operation.Id = !string.IsNullOrEmpty(telemetry.Context.Operation.Id) ? telemetry.Context.Operation.Id : context.TelemetryContextOperationId;
+                if (telemetry is ExceptionTelemetry)
+                {
+                    telemetry.Context.Operation.ParentId = context.TelemetryId;
+                } else
+                {
+                    telemetry.Context.Operation.ParentId = !string.IsNullOrEmpty(telemetry.Context.Operation.ParentId) ? telemetry.Context.Operation.ParentId : context.TelemetryContextOperationParentId;
+                }
+            }
+        }
+
+        internal static void UpdateTelemetryW3C(ITelemetry telemetry, W3CTraceContext context)
+        {
+            OperationTelemetry opTelemetry = telemetry as OperationTelemetry;
 
             bool initializeFromCurrent = opTelemetry != null;
 
@@ -164,7 +216,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
 
             if (initializeFromCurrent)
             {
-                opTelemetry.Id = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+                if (string.IsNullOrEmpty(opTelemetry.Id))
+                    opTelemetry.Id = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+
                 if (string.IsNullOrEmpty(context.ParentSpanId))
                 {
                     telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, context.ParentSpanId);
@@ -177,13 +231,29 @@ namespace DurableTask.AzureStorage.Tests.Correlation
                     telemetry.Context.Operation.Id = traceParent.TraceId;
                 }
 
-                telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+                if (telemetry.Context.Operation.ParentId == null) // TODO check if it works. 
+                {
+                    telemetry.Context.Operation.ParentId = StringUtilities.FormatRequestId(telemetry.Context.Operation.Id, traceParent.SpanId);
+                }
             }
         }
 
         internal void SuppressTelemetry(ITelemetry telemetry)
         {
+            // TODO change the strategy.
             telemetry.Context.Operation.Id = "suppressed";
+            telemetry.Context.Operation.ParentId = "suppressed";
+            // Context. Properties.  ai_legacyRequestId , ai_legacyRequestId
+            foreach (var key in telemetry.Context.Properties.Keys)
+            {
+                if (key == "ai_legacyRootId" ||
+                    key == "ai_legacyRequestId")
+                {
+                    telemetry.Context.Properties[key] = "suppressed";
+                }
+            }
+
+            ((OperationTelemetry)telemetry).Id = "suppressed";
         }
 
         internal bool IsSuppressedTelemetry(ITelemetry telemetry)
@@ -199,7 +269,14 @@ namespace DurableTask.AzureStorage.Tests.Correlation
                     if (ExcludeComponentCorrelationHttpHeadersOnDomains.Contains(host)) return true;
                 }
             }
+
             return false;
+        }
+
+        internal static void UpdateTelemetryExceptionForHTTPCorrelationProtocol(ExceptionTelemetry telemetry, Activity activity)
+        {
+            telemetry.Context.Operation.ParentId = activity.Id;
+            telemetry.Context.Operation.Id = activity.RootId;
         }
 
         [SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", Justification = "This method has different code for Net45/NetCore")]

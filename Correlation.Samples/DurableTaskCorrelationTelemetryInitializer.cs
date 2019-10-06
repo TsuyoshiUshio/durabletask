@@ -127,7 +127,7 @@ namespace Correlation.Samples
                     {
                         UpdateTelemetry(telemetry, CorrelationTraceContext.Current);
                     }
-                    else
+                    else 
                     {
                         UpdateTelemetry(telemetry, currentActivity, false);
                     }

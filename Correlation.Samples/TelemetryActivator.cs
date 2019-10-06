@@ -14,18 +14,14 @@
 namespace Correlation.Samples
 {
     using System;
-    using System.Diagnostics;
-    using DurableTask.AzureStorage;
     using DurableTask.Core;
     using Microsoft.ApplicationInsights;
-    using Microsoft.ApplicationInsights.DataContracts;
     using Microsoft.ApplicationInsights.DependencyCollector;
     using Microsoft.ApplicationInsights.Extensibility;
-    using Microsoft.ApplicationInsights.W3C;
 
     public class TelemetryActivator
     {        
-        private static TelemetryClient telemetryClient;
+        static TelemetryClient telemetryClient;
 
         public void Initialize()
         {

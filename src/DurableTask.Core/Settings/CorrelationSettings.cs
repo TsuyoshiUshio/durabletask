@@ -37,6 +37,12 @@ namespace DurableTask.Core.Settings
         public string Protocol { get; set; }
 
         /// <summary>
+        /// Suppress Distributed Tracing
+        /// default: false
+        /// </summary>
+        public bool DisablePropagation { get; set; }
+
+        /// <summary>
         /// Current Correlation Settings
         /// TODO Need to discuss the design for referencing Settings from DurableTask.Core side.
         /// </summary>

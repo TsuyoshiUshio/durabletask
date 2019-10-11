@@ -38,6 +38,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task SingleOrchestratorWithSingleActivityAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloOrchestrator), "world", 360);
             Assert.AreEqual(5, actual.Count);
@@ -82,6 +83,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task SingleOrchestrationWithThrowingExceptionAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             // parameter = null cause an exception. 
             Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> result = await host.ExecuteOrchestrationWithExceptionAsync(typeof(SayHelloOrchestrator), null, 50);
@@ -114,6 +116,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task SingleOrchestratorWithMultipleActivitiesAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloActivities), "world", 50);
             Assert.AreEqual(7, actual.Count);
@@ -171,6 +174,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task SubOrchestratorAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(ParentOrchestrator), "world", 50);
             Assert.AreEqual(7, actual.Count);
@@ -212,6 +216,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task MultipleSubOrchestratorAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(ParentOrchestratorWithMultiLayeredSubOrchestrator), "world", 50);
             Assert.AreEqual(13, actual.Count);
@@ -266,6 +271,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task SingleOrchestratorWithRetryAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             SingleOrchestrationWithRetry.ResetCounter();
             Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> resultTuple = await host.ExecuteOrchestrationWithExceptionAsync(typeof(SingleOrchestrationWithRetry), "world", 50);
@@ -327,6 +333,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task MultiLayeredOrchestrationWithRetryAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             MultiLayeredOrchestrationWithRetry.Reset();
             var host = new TestCorrelationOrchestrationHost();
             Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> resultTuple = await host.ExecuteOrchestrationWithExceptionAsync(typeof(MultiLayeredOrchestrationWithRetry), "world", 50);
@@ -433,6 +440,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         public async Task ContinueAsNewAsync(string protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             ContinueAsNewOrchestration.Reset();
             var host = new TestCorrelationOrchestrationHost();
             List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(ContinueAsNewOrchestration), "world", 50);
@@ -486,6 +494,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         {
             MultiParentOrchestrator.Reset();
             CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = false;
             var host = new TestCorrelationOrchestrationHost();
             var tasks = new List<Task>();
             tasks.Add(host.ExecuteOrchestrationAsync(typeof(MultiParentOrchestrator), "world", 30));
@@ -546,6 +555,22 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             {
                 IsWaitForExternalEvent = false;
             }
+        }
+
+        [DataTestMethod]
+        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
+        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
+        public async Task SuppressTelemetryAsync(string protocol)
+        {
+            CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.DisablePropagation = true;
+            MultiLayeredOrchestrationWithRetry.Reset();
+            var host = new TestCorrelationOrchestrationHost();
+            Tuple<List<OperationTelemetry>, List<ExceptionTelemetry>> resultTuple = await host.ExecuteOrchestrationWithExceptionAsync(typeof(MultiLayeredOrchestrationWithRetry), "world", 50);
+            List<OperationTelemetry> actual = resultTuple.Item1;
+            List<ExceptionTelemetry> actualExceptions = resultTuple.Item2;
+            Assert.AreEqual(0, actual.Count);
+            Assert.AreEqual(0, actualExceptions.Count);
         }
 
         //[TestMethod] terminate

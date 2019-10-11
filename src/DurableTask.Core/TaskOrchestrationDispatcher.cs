@@ -191,7 +191,7 @@ namespace DurableTask.Core
             var isInterrupted = false;
             
             // correlation
-            CorrelationTraceContext.Current = workItem.TraceContext;
+            CorrelationTraceClient.Propagate(() => CorrelationTraceContext.Current = workItem.TraceContext);
 
             ExecutionStartedEvent continueAsNewExecutionStarted = null;
             TaskMessage continuedAsNewMessage = null;

@@ -442,16 +442,9 @@ namespace DurableTask.Core
             object eventData)
         {
             TraceContextBase requestTraceContext = null;
+
             // correlation 
-            if (Activity.Current == null) // It is possible that the caller already has an activity.
-            {
-                requestTraceContext = TraceContextFactory.Create($"{TraceConstants.Client}: {eventName}");
-                requestTraceContext.StartAsNew();
-            }
-            else
-            {
-                requestTraceContext = TraceContextFactory.Create(Activity.Current);
-            }
+            CorrelationTraceClient.Propagate(()=> { requestTraceContext = CreateOrExtractRequestTraceContext(eventName); });
 
             if (string.IsNullOrWhiteSpace(orchestrationInstanceId))
             {
@@ -501,6 +494,33 @@ namespace DurableTask.Core
                 });
             }
 
+            CorrelationTraceClient.Propagate(() => CreateAndTrackDependencyTelemetry(requestTraceContext));
+
+            // Raised events and create orchestration calls use different methods so get handled separately
+            await Task.WhenAll(taskMessages.Where(t => !(t.Event is EventRaisedEvent)).Select(sEvent => ServiceClient.CreateTaskOrchestrationAsync(sEvent, dedupeStatuses)));
+            await ServiceClient.SendTaskOrchestrationMessageBatchAsync(taskMessages.Where(t => (t.Event is EventRaisedEvent)).ToArray());
+
+            return orchestrationInstance;
+        }
+
+        TraceContextBase CreateOrExtractRequestTraceContext(string eventName)
+        {
+            TraceContextBase requestTraceContext = null;
+            if (Activity.Current == null) // It is possible that the caller already has an activity.
+            {
+                requestTraceContext = TraceContextFactory.Create($"{TraceConstants.Client}: {eventName}");
+                requestTraceContext.StartAsNew();
+            }
+            else
+            {
+                requestTraceContext = TraceContextFactory.Create(Activity.Current);
+            }
+
+            return requestTraceContext;
+        }
+
+        void CreateAndTrackDependencyTelemetry(TraceContextBase requestTraceContext)
+        {
             TraceContextBase dependencyTraceContext = TraceContextFactory.Create(TraceConstants.Client);
             dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
             dependencyTraceContext.SetParentAndStart(requestTraceContext);
@@ -510,12 +530,6 @@ namespace DurableTask.Core
             // Correlation
             CorrelationTraceClient.TrackDepencencyTelemetry(dependencyTraceContext);
             CorrelationTraceClient.TrackRequestTelemetry(requestTraceContext);
-
-            // Raised events and create orchestration calls use different methods so get handled separately
-            await Task.WhenAll(taskMessages.Where(t => !(t.Event is EventRaisedEvent)).Select(sEvent => ServiceClient.CreateTaskOrchestrationAsync(sEvent, dedupeStatuses)));
-            await ServiceClient.SendTaskOrchestrationMessageBatchAsync(taskMessages.Where(t => (t.Event is EventRaisedEvent)).ToArray());
-
-            return orchestrationInstance;
         }
 
         /// <summary>

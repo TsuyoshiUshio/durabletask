@@ -16,6 +16,7 @@ namespace DurableTask.Core
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using DurableTask.Core.Settings;
 
     /// <summary>
     /// Delegate sending telemetry to the other side.
@@ -81,7 +82,7 @@ namespace DurableTask.Core
         /// <param name="context"></param>
         public static void TrackRequestTelemetry(TraceContextBase context)
         {
-            logger.Write(RequestTrackEvent, context);
+            Tracking(() => logger.Write(RequestTrackEvent, context));
         }
 
         /// <summary>
@@ -90,7 +91,7 @@ namespace DurableTask.Core
         /// <param name="context"></param>
         public static void TrackDepencencyTelemetry(TraceContextBase context)
         {
-            logger.Write(DependencyTrackEvent, context);
+            Tracking(() => logger.Write(DependencyTrackEvent, context));
         }
 
         /// <summary>
@@ -99,7 +100,30 @@ namespace DurableTask.Core
         /// <param name="e"></param>
         public static void TrackException(Exception e)
         {
-            logger.Write(ExceptionEvent, e);
+            Tracking(() => logger.Write(ExceptionEvent, e));
+        }
+
+        /// <summary>
+        /// Execute Action for Propagate correlation information.
+        /// It suppresses the execution when <see cref="CorrelationSettings"/>.DisablePropagation is true.
+        /// </summary>
+        /// <param name="action"></param>
+        public static void Propagate(Action action)
+        {
+            Execute(action);
+        }
+
+        static void Tracking(Action tracking)
+        {
+            Execute(tracking);
+        }
+
+        static void Execute(Action action)
+        {
+            if (!CorrelationSettings.Current.DisablePropagation)
+            {
+                action();
+            }
         }
     }
 }

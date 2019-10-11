@@ -111,8 +111,9 @@ namespace DurableTask.AzureStorage.Messaging
                 data.SequenceNumber = Interlocked.Increment(ref messageSequenceNumber);
 
                 // Inject Correlation TraceContext on a queue.
-                data.SerializableTraceContext = GetSerializableTraceContext(taskMessage);
-
+                CorrelationTraceClient.Propagate(
+                    () => { data.SerializableTraceContext = GetSerializableTraceContext(taskMessage); });
+                
                 var rawContent = await messageManager.SerializeMessageDataAsync(data);
 
                 CloudQueueMessage queueMessage = new CloudQueueMessage(rawContent);
@@ -170,7 +171,6 @@ namespace DurableTask.AzureStorage.Messaging
 
         static string GetSerializableTraceContext(TaskMessage taskMessage)
         {
-
             TraceContextBase traceContext = CorrelationTraceContext.Current;
             if (traceContext != null)
             {
@@ -190,6 +190,7 @@ namespace DurableTask.AzureStorage.Messaging
                     return traceContext.SerializableTraceContext;
                 }
             }
+
             // TODO this might not happen, however, in case happen, introduce NullObjectTraceContext.
             return null; 
         }

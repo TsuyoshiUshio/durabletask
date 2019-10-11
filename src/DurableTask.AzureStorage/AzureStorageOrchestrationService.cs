@@ -660,9 +660,15 @@ namespace DurableTask.AzureStorage
                     }
 
                     // Create or restore Correlation TraceContext
-                    var isReplaying = session.RuntimeState.ExecutionStartedEvent?.IsPlayed ?? false;
-                    TraceContextBase parentTraceContext = GetParentTraceContext(session.CurrentMessageBatch);
-                    TraceContextBase currentRequestTraceContext = GetRequestTraceContext(isReplaying, parentTraceContext);
+
+                    TraceContextBase currentRequestTraceContext = null;
+                    CorrelationTraceClient.Propagate(
+                        () =>
+                        {
+                            var isReplaying = session.RuntimeState.ExecutionStartedEvent?.IsPlayed ?? false;
+                            TraceContextBase parentTraceContext = GetParentTraceContext(session.CurrentMessageBatch);
+                            currentRequestTraceContext = GetRequestTraceContext(isReplaying, parentTraceContext);
+                        });
 
                     orchestrationWorkItem = new TaskOrchestrationWorkItem
                     {
@@ -759,7 +765,8 @@ namespace DurableTask.AzureStorage
                         case TimerFiredEvent tf:
                             if (traceContext.OrchestrationTraceContexts.Count != 0)
                                 traceContext.OrchestrationTraceContexts.Pop();
-                                parentTraceContext = traceContext;
+
+                            parentTraceContext = traceContext;
                             break;
                         default:
                             // When internal error happens, multiple message could come, however, it should not be prioritized.
@@ -768,11 +775,13 @@ namespace DurableTask.AzureStorage
                             {
                                 parentTraceContext = traceContext;
                             }
+
                             break;
                     }                   
                 }               
             }
-            return parentTraceContext == null? TraceContextFactory.Empty : parentTraceContext;
+
+            return parentTraceContext ?? TraceContextFactory.Empty;
         }
 
         static bool IsActivityOrOrchestrationFailedOrCompleted(IList<MessageData> messages)
@@ -788,6 +797,7 @@ namespace DurableTask.AzureStorage
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -961,11 +971,16 @@ namespace DurableTask.AzureStorage
 
             // Correlation
 
-            TraceContextBase currentTraceContextBaseOnComplete = CreateOrRestoreRequestTraceContextWithDependencyTrackingSettings(
-                workItem.TraceContext, 
-                orchestrationState, 
-                DependencyTelemetryStarted(outboundMessages, orchestratorMessages, timerMessages, continuedAsNewMessage, orchestrationState));
-
+            TraceContextBase currentTraceContextBaseOnComplete = null;
+            CorrelationTraceClient.Propagate(
+                () =>
+                {
+                    currentTraceContextBaseOnComplete = CreateOrRestoreRequestTraceContextWithDependencyTrackingSettings(
+                        workItem.TraceContext,
+                        orchestrationState,
+                        DependencyTelemetryStarted(outboundMessages, orchestratorMessages, timerMessages, continuedAsNewMessage, orchestrationState));
+                }
+            );
             // First, add new messages into the queue. If a failure happens after this, duplicate messages will
             // be written after the retry, but the results of those messages are expected to be de-dup'd later.
             // This provider needs to ensure that response messages are not processed until the history a few
@@ -979,11 +994,15 @@ namespace DurableTask.AzureStorage
                 continuedAsNewMessage);
 
             // correlation
-
-            TrackOrchestrationRequestTelemetry(
-                currentTraceContextBaseOnComplete, 
-                orchestrationState, 
-                $"{TraceConstants.Orchestrator} {session.RuntimeState.ExecutionStartedEvent?.Name?.GetTargetClassName()}");
+            CorrelationTraceClient.Propagate(
+                () =>
+                {
+                    TrackOrchestrationRequestTelemetry(
+                        currentTraceContextBaseOnComplete,
+                        orchestrationState,
+                        $"{TraceConstants.Orchestrator} {session.RuntimeState.ExecutionStartedEvent?.Name?.GetTargetClassName()}");
+                }
+                );
 
             // Next, commit the orchestration history updates. This is the actual "checkpoint". Failures after this
             // will result in a duplicate replay of the orchestration with no side-effects.
@@ -1052,7 +1071,7 @@ namespace DurableTask.AzureStorage
                     case OrchestrationStatus.Completed:
                     case OrchestrationStatus.Failed:
                         // Completion of the orchestration.
-                        var parentTraceContext = traceContext;
+                        TraceContextBase parentTraceContext = traceContext;
                         if (parentTraceContext.OrchestrationTraceContexts.Count >= 1)
                         {
                             currentTraceContextBaseOnComplete = parentTraceContext.OrchestrationTraceContexts.Pop();
@@ -1062,12 +1081,14 @@ namespace DurableTask.AzureStorage
                         {
                             currentTraceContextBaseOnComplete = TraceContextFactory.Empty;
                         }
+
                         break;
                     default:
                         currentTraceContextBaseOnComplete = TraceContextFactory.Empty;
                         break;
                 }
             }
+
             return currentTraceContextBaseOnComplete;
         }
 
@@ -1082,12 +1103,12 @@ namespace DurableTask.AzureStorage
                         traceContext.OperationName = operationName;
                         CorrelationTraceClient.TrackRequestTelemetry(traceContext);
                     }
+
                     break;
                 default:
                     break;
             }
         }
-
 
         async Task CommitOutboundQueueMessages(
             OrchestrationSession session,
@@ -1252,11 +1273,16 @@ namespace DurableTask.AzureStorage
                 session.StartNewLogicalTraceScope();
 
                 // correlation 
-                string name = $"{TraceConstants.Activity} {((TaskScheduledEvent)session.MessageData.TaskMessage.Event)?.Name?.GetTargetClassName()}";
-                TraceContextBase requestTraceContext = TraceContextFactory.Create(name);
+                TraceContextBase requestTraceContext = null;
+                CorrelationTraceClient.Propagate(
+                    () =>
+                    {
+                        string name = $"{TraceConstants.Activity} {((TaskScheduledEvent)session.MessageData.TaskMessage.Event)?.Name?.GetTargetClassName()}";
+                        requestTraceContext = TraceContextFactory.Create(name);
 
-                TraceContextBase parentTraceContextBase = TraceContextBase.Restore(session.MessageData.SerializableTraceContext);
-                requestTraceContext.SetParentAndStart(parentTraceContextBase);
+                        TraceContextBase parentTraceContextBase = TraceContextBase.Restore(session.MessageData.SerializableTraceContext);
+                        requestTraceContext.SetParentAndStart(parentTraceContextBase);
+                    });
 
                 TraceMessageReceived(session.MessageData, this.storageAccountName, this.settings.TaskHubName);
                 session.TraceProcessingMessage(message, isExtendedSession: false);
@@ -1304,8 +1330,7 @@ namespace DurableTask.AzureStorage
             session.StartNewLogicalTraceScope();
 
             // Correlation 
- 
-            CorrelationTraceContext.Current = workItem.TraceContextBase;
+            CorrelationTraceClient.Propagate(() => CorrelationTraceContext.Current = workItem.TraceContextBase);
 
             string instanceId = workItem.TaskMessage.OrchestrationInstance.InstanceId;
             ControlQueue controlQueue = await this.GetControlQueueAsync(instanceId);
@@ -1314,8 +1339,12 @@ namespace DurableTask.AzureStorage
             // work item message yet (that happens next).
             await controlQueue.AddMessageAsync(responseTaskMessage, session);
 
-            // RequestTelemtryTracking
-            CorrelationTraceClient.TrackRequestTelemetry(workItem.TraceContextBase);
+            // RequestTelemetryTracking
+            CorrelationTraceClient.Propagate(
+                () =>
+                {
+                    CorrelationTraceClient.TrackRequestTelemetry(workItem.TraceContextBase);
+                });
 
             // Next, delete the work item queue message. This must come after enqueuing the response message.
             await this.workItemQueue.DeleteMessageAsync(session.MessageData, session);

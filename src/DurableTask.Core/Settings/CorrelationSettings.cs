@@ -38,9 +38,9 @@ namespace DurableTask.Core.Settings
 
         /// <summary>
         /// Suppress Distributed Tracing
-        /// default: false
+        /// default: true
         /// </summary>
-        public bool DisablePropagation { get; set; }
+        public bool DisablePropagation { get; set; } = true;
 
         /// <summary>
         /// Current Correlation Settings

@@ -14,11 +14,13 @@
 namespace Correlation.Samples
 {
     using System;
+    using DurableTask.Core.Settings;
 
     public class Program
     {
         static void Main(string[] args)
         {
+            CorrelationSettings.Current.DisablePropagation = false;
             // InvokeScenario(typeof(HelloOrchestrator), "50", 50); // HelloWorldScenario.cs;
             // InvokeScenario(typeof(SubOrchestratorOrchestration), "SubOrchestrationWorld", 50);  // SubOrchestratorScenario.cs;
             // InvokeScenario(typeof(RetryOrchestration), "Retry Scenario", 50); // RetryScenario.cs;

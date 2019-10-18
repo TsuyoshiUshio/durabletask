@@ -47,7 +47,7 @@ namespace Correlation.Samples
             switch (protocol)
             {
                 case "HTTP":
-                    CorrelationSettings.Current = new CorrelationSettings() { Protocol = FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol };
+                    CorrelationSettings.Current.Protocol = FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol;
                     return;
                 default:
 #pragma warning disable 618

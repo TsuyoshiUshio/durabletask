@@ -33,9 +33,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
     public class CorrelationScenarioTest
     {
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task SingleOrchestratorWithSingleActivityAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task SingleOrchestratorWithSingleActivityAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -78,9 +78,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task SingleOrchestrationWithThrowingExceptionAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task SingleOrchestrationWithThrowingExceptionAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -111,9 +111,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task SingleOrchestratorWithMultipleActivitiesAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task SingleOrchestratorWithMultipleActivitiesAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -169,9 +169,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task SubOrchestratorAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task SubOrchestratorAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -211,9 +211,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task MultipleSubOrchestratorAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task MultipleSubOrchestratorAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -266,9 +266,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task SingleOrchestratorWithRetryAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task SingleOrchestratorWithRetryAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -328,9 +328,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task MultiLayeredOrchestrationWithRetryAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task MultiLayeredOrchestrationWithRetryAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -435,9 +435,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         //[TestMethod] ContinueAsNew
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task ContinueAsNewAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task ContinueAsNewAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = true;
@@ -488,9 +488,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task MultipleParentScenarioAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task MultipleParentScenarioAsync(Protocol protocol)
         {
             MultiParentOrchestrator.Reset();
             CorrelationSettings.Current.Protocol = protocol;
@@ -558,9 +558,9 @@ namespace DurableTask.AzureStorage.Tests.Correlation
         }
 
         [DataTestMethod]
-        [DataRow(FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol)]
-        [DataRow(FrameworkConstants.CorrelationProtocolW3CTraceContext)]
-        public async Task SuppressTelemetryAsync(string protocol)
+        [DataRow(Protocol.HttpCorrelationProtocol)]
+        [DataRow(Protocol.W3CTraceContext)]
+        public async Task SuppressTelemetryAsync(Protocol protocol)
         {
             CorrelationSettings.Current.Protocol = protocol;
             CorrelationSettings.Current.EnableDistributedTracing = false;
@@ -634,7 +634,7 @@ namespace DurableTask.AzureStorage.Tests.Correlation
                     await host.StartAsync();
                     var activity = new Activity(TraceConstants.Client);
 
-                    if (CorrelationSettings.Current.Protocol == FrameworkConstants.CorrelationProtocolW3CTraceContext)
+                    if (CorrelationSettings.Current.Protocol == Protocol.W3CTraceContext)
                     {
 #pragma warning disable 618
                         activity.GenerateW3CContext();

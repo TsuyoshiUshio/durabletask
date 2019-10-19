@@ -132,10 +132,10 @@ namespace DurableTask.AzureStorage.Tests.Correlation
                     {
                         UpdateTelemetry(telemetry, CorrelationTraceContext.Current);
                     }
-                    else if (CorrelationSettings.Current.Protocol == FrameworkConstants.CorrelationProtocolW3CTraceContext)
+                    else if (CorrelationSettings.Current.Protocol == Protocol.W3CTraceContext)
                     {
                         UpdateTelemetry(telemetry, currentActivity, false);
-                    } else if (CorrelationSettings.Current.Protocol == FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol
+                    } else if (CorrelationSettings.Current.Protocol == Protocol.HttpCorrelationProtocol
                         && telemetry is ExceptionTelemetry)
                     {
                         UpdateTelemetryExceptionForHTTPCorrelationProtocol((ExceptionTelemetry)telemetry, currentActivity);

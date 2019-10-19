@@ -58,9 +58,9 @@ namespace DurableTask.Core
         {
             switch (CorrelationSettings.Current.Protocol)
             {
-                case FrameworkConstants.CorrelationProtocolW3CTraceContext:
+                case Protocol.W3CTraceContext:
                     return new W3CTraceContextFactory();                
-                case FrameworkConstants.CorrelationProtocolHTTPCorrelationProtocol:
+                case Protocol.HttpCorrelationProtocol:
                     return new HttpCorrelationProtocolTraceContextFactory();
                 default:
                     throw new NotSupportedException($"{CorrelationSettings.Current.Protocol} is not supported. Check the CorrelationSettings.Current.Protocol");

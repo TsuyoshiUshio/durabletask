@@ -159,8 +159,7 @@ namespace DurableTask.Core
         {
             if (!string.IsNullOrEmpty(json))
             {
-
-                var typeName = JObject.Parse(json)["$type"];
+                JToken typeName = JObject.Parse(json)["$type"];
                 Type traceContextType = Type.GetType(typeName.Value<string>());
 
                 var restored = JsonConvert.DeserializeObject(
@@ -180,5 +179,21 @@ namespace DurableTask.Core
                 return TraceContextFactory.Empty;
             }
         }
+    }
+
+    /// <summary>
+    /// Telemetry Type
+    /// </summary>
+    public enum TelemetryType
+    {
+        /// <summary>
+        /// Request Telemetry
+        /// </summary>
+        Request,
+
+        /// <summary>
+        /// Dependency Telemetry
+        /// </summary>
+        Dependency,
     }
 }

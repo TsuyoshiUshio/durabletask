@@ -120,7 +120,7 @@ namespace DurableTask.Core
 
         static void Execute(Action action)
         {
-            if (!CorrelationSettings.Current.DisablePropagation)
+            if (CorrelationSettings.Current.EnableDistributedTracing)
             {
                 action();
             }

@@ -20,7 +20,7 @@ namespace Correlation.Samples
     {
         static void Main(string[] args)
         {
-            CorrelationSettings.Current.DisablePropagation = false;
+            CorrelationSettings.Current.EnableDistributedTracing = true;
             // InvokeScenario(typeof(HelloOrchestrator), "50", 50); // HelloWorldScenario.cs;
             // InvokeScenario(typeof(SubOrchestratorOrchestration), "SubOrchestrationWorld", 50);  // SubOrchestratorScenario.cs;
             // InvokeScenario(typeof(RetryOrchestration), "Retry Scenario", 50); // RetryScenario.cs;

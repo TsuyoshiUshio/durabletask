@@ -180,7 +180,7 @@ namespace DurableTask.AzureStorage.Messaging
                     string name = (nameProperty == null) ? TraceConstants.DependencyDefault : (string)nameProperty.GetValue(taskMessage.Event);
 
                     var dependencyTraceContext = TraceContextFactory.Create($"{TraceConstants.Orchestrator} {name}");
-                    dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
+                    dependencyTraceContext.TelemetryType = TelemetryType.Dependency;
                     dependencyTraceContext.SetParentAndStart(traceContext);
                     dependencyTraceContext.OrchestrationTraceContexts.Push(dependencyTraceContext);
                     return dependencyTraceContext.SerializableTraceContext;

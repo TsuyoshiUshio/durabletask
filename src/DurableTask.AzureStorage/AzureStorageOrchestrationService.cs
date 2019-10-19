@@ -810,7 +810,7 @@ namespace DurableTask.AzureStorage
                 var name = $"{TraceConstants.Orchestrator}";
                 currentRequestTraceContext = TraceContextFactory.Create(name);
                 currentRequestTraceContext.SetParentAndStart(parentTraceContext);
-                currentRequestTraceContext.TelemetryType = FrameworkConstants.RequestTelemetryType; // TODO Make sure it works. 
+                currentRequestTraceContext.TelemetryType = TelemetryType.Request;
                 currentRequestTraceContext.OrchestrationTraceContexts.Push(currentRequestTraceContext);
             }
             else

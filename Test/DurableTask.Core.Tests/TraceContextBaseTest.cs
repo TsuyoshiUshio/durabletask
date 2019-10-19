@@ -97,7 +97,7 @@ namespace DurableTask.Core.Tests
 
             var currentRequestContext = currentContext.GetCurrentOrchestrationRequestTraceContext();
 
-            Assert.AreEqual(FrameworkConstants.RequestTelemetryType, currentRequestContext.TelemetryType);
+            Assert.AreEqual(TelemetryType.Request, currentRequestContext.TelemetryType);
             Assert.AreEqual("foo", ((Foo)currentRequestContext).Comment);
         }
 
@@ -113,7 +113,7 @@ namespace DurableTask.Core.Tests
 
             var currentRequestContext = currentContext.GetCurrentOrchestrationRequestTraceContext();
 
-            Assert.AreEqual(FrameworkConstants.RequestTelemetryType, currentRequestContext.TelemetryType);
+            Assert.AreEqual(TelemetryType.Request, currentRequestContext.TelemetryType);
             Assert.AreEqual("baz", ((Foo)currentRequestContext).Comment);
         }
 
@@ -127,14 +127,14 @@ namespace DurableTask.Core.Tests
         private Foo GetNewRequestContext(string comment)
         {
             var requestContext = new Foo() { Comment = comment };
-            requestContext.TelemetryType = FrameworkConstants.RequestTelemetryType;
+            requestContext.TelemetryType = TelemetryType.Request;
             return requestContext;
         }
 
         private Foo GetNewDependencyContext(string comment)
         {
             var dependencyContext = new Foo() { Comment = comment };
-            dependencyContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
+            dependencyContext.TelemetryType = TelemetryType.Dependency;
             return dependencyContext;
         }
 

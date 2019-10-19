@@ -162,17 +162,5 @@ namespace DurableTask.Core
         /// The default batch flush interval in milliseconds seconds
         /// </summary>
         public const int BatchFlushIntervalInMilliSecs = 100;
-
-        /// <summary>
-        /// The type of Telemetry of Distributed Tracing
-        /// Request Telemetry
-        /// </summary>
-        public const string RequestTelemetryType = "Request";
-
-        /// <summary>
-        /// The type of Telemetry of Distributed Tracing
-        /// Dependency Telemetry
-        /// </summary>
-        public const string DependencyTelemetryType = "Dependency";
     }
 }

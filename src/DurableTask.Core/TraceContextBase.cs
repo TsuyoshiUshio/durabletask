@@ -43,10 +43,9 @@ namespace DurableTask.Core
         /// Type of this telemetry.
         /// Request Telemetry or Dependency Telemetry.
         /// Use
-        /// <see cref="FrameworkConstants.RequestTelemetryType"/> or
-        /// <see cref="FrameworkConstants.DependencyTelemetryType" /> 
+        /// <see cref="TelemetryType"/> 
         /// </summary>
-        public string TelemetryType { get; set; }
+        public TelemetryType TelemetryType { get; set; }
 
         /// <summary>
         /// OrchestrationState save the state of the 
@@ -112,7 +111,7 @@ namespace DurableTask.Core
         {
             foreach(TraceContextBase element in OrchestrationTraceContexts)
             {
-                if (FrameworkConstants.RequestTelemetryType == element.TelemetryType) return element;
+                if (TelemetryType.Request == element.TelemetryType) return element;
             }
 
             throw new InvalidOperationException("Can not find RequestTraceContext");

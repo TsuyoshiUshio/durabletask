@@ -522,7 +522,7 @@ namespace DurableTask.Core
         void CreateAndTrackDependencyTelemetry(TraceContextBase requestTraceContext)
         {
             TraceContextBase dependencyTraceContext = TraceContextFactory.Create(TraceConstants.Client);
-            dependencyTraceContext.TelemetryType = FrameworkConstants.DependencyTelemetryType;
+            dependencyTraceContext.TelemetryType = TelemetryType.Dependency;
             dependencyTraceContext.SetParentAndStart(requestTraceContext);
 
             CorrelationTraceContext.Current = dependencyTraceContext;

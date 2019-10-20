@@ -1046,7 +1046,6 @@ namespace DurableTask.AzureStorage
             TaskMessage continuedAsNewMessage,
             OrchestrationState orchestrationState)
         {
-            // TODO Currently this method doesn't support continuedAsNew and timerMessage
             return (outboundMessages.Count != 0 || orchestratorMessages.Count != 0 || timerMessages.Count != 0) 
                 && ((orchestrationState.OrchestrationStatus != OrchestrationStatus.Completed) &&
                     (orchestrationState.OrchestrationStatus != OrchestrationStatus.Failed)

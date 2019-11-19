@@ -44,36 +44,39 @@ namespace DurableTask.Core
             Action<TraceContextBase> trackDependencyTelemetryAction, 
             Action<Exception> trackExceptionAction)
         {
-            listenerSubscription = DiagnosticListener.AllListeners.Subscribe(
-                delegate(DiagnosticListener listener)
-                {
-                    if (listener.Name == DiagnosticSourceName)
+            if (listenerSubscription == null)
+            {
+                listenerSubscription = DiagnosticListener.AllListeners.Subscribe(
+                    delegate (DiagnosticListener listener)
                     {
-                        applicationInsightsSubscription?.Dispose();
-
-                        applicationInsightsSubscription = listener.Subscribe((KeyValuePair<string, object> evt) =>
+                        if (listener.Name == DiagnosticSourceName)
                         {
-                            if (evt.Key == RequestTrackEvent)
-                            {
-                                var context = (TraceContextBase)evt.Value;
-                                trackRequestTelemetryAction(context);
-                            }
+                            applicationInsightsSubscription?.Dispose();
 
-                            if (evt.Key == DependencyTrackEvent)
+                            applicationInsightsSubscription = listener.Subscribe((KeyValuePair<string, object> evt) =>
                             {
-                                // the parameter is DependencyTelemetry which is already stopped. 
-                                var context = (TraceContextBase) evt.Value;
-                                trackDependencyTelemetryAction(context);
-                            }
+                                if (evt.Key == RequestTrackEvent)
+                                {
+                                    var context = (TraceContextBase)evt.Value;
+                                    trackRequestTelemetryAction(context);
+                                }
 
-                            if (evt.Key == ExceptionEvent)
-                            {
-                                var e = (Exception) evt.Value;
-                                trackExceptionAction(e);
-                            }
-                        });
-                    }
-                });
+                                if (evt.Key == DependencyTrackEvent)
+                                {
+                                    // the parameter is DependencyTelemetry which is already stopped. 
+                                    var context = (TraceContextBase)evt.Value;
+                                    trackDependencyTelemetryAction(context);
+                                }
+
+                                if (evt.Key == ExceptionEvent)
+                                {
+                                    var e = (Exception)evt.Value;
+                                    trackExceptionAction(e);
+                                }
+                            });
+                        }
+                    });
+            }
         }
 
         /// <summary>

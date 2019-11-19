@@ -44,7 +44,6 @@ namespace DurableTask.Core
             Action<TraceContextBase> trackDependencyTelemetryAction, 
             Action<Exception> trackExceptionAction)
         {
-<<<<<<< HEAD
             if (listenerSubscription == null)
             {
                 listenerSubscription = DiagnosticListener.AllListeners.Subscribe(
@@ -78,38 +77,6 @@ namespace DurableTask.Core
                         }
                     });
             }
-=======
-            listenerSubscription = DiagnosticListener.AllListeners.Subscribe(
-                delegate(DiagnosticListener listener)
-                {
-                    if (listener.Name == DiagnosticSourceName)
-                    {
-                        applicationInsightsSubscription?.Dispose();
-
-                        applicationInsightsSubscription = listener.Subscribe((KeyValuePair<string, object> evt) =>
-                        {
-                            if (evt.Key == RequestTrackEvent)
-                            {
-                                var context = (TraceContextBase)evt.Value;
-                                trackRequestTelemetryAction(context);
-                            }
-
-                            if (evt.Key == DependencyTrackEvent)
-                            {
-                                // the parameter is DependencyTelemetry which is already stopped. 
-                                var context = (TraceContextBase) evt.Value;
-                                trackDependencyTelemetryAction(context);
-                            }
-
-                            if (evt.Key == ExceptionEvent)
-                            {
-                                var e = (Exception) evt.Value;
-                                trackExceptionAction(e);
-                            }
-                        });
-                    }
-                });
->>>>>>> 2fae2a18b35876f0e2136f108bb4f85c57ce2cff
         }
 
         /// <summary>

@@ -16,6 +16,10 @@ namespace DurableTask.AzureStorage.Tests
     using System;
     using System.Collections.Generic;
     using System.Linq;
+<<<<<<< HEAD
+=======
+    using System.ServiceModel.Channels;
+>>>>>>> 2fae2a18b35876f0e2136f108bb4f85c57ce2cff
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.VisualStudio.TestTools.UnitTesting;

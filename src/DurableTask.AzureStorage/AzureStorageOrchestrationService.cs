@@ -1144,6 +1144,76 @@ namespace DurableTask.AzureStorage
             }
         }
 
+        bool DependencyTelemetryStarted(
+            IList<TaskMessage> outboundMessages,
+            IList<TaskMessage> orchestratorMessages,
+            IList<TaskMessage> timerMessages,
+            TaskMessage continuedAsNewMessage,
+            OrchestrationState orchestrationState)
+        {
+            return (outboundMessages.Count != 0 || orchestratorMessages.Count != 0 || timerMessages.Count != 0) 
+                && ((orchestrationState.OrchestrationStatus != OrchestrationStatus.Completed) &&
+                    (orchestrationState.OrchestrationStatus != OrchestrationStatus.Failed)
+                    );
+        }
+
+        TraceContextBase CreateOrRestoreRequestTraceContextWithDependencyTrackingSettings(TraceContextBase traceContext, OrchestrationState orchestrationState, bool dependencyTelemetryStarted)
+        {
+            TraceContextBase currentTraceContextBaseOnComplete = null;
+            
+            if (dependencyTelemetryStarted)
+            {
+                // DependencyTelemetry will be included on an outbound queue
+                // See TaskHubQueue
+                CorrelationTraceContext.GenerateDependencyTracking = true;
+                CorrelationTraceContext.Current = traceContext;
+            }
+            else
+            {
+                switch(orchestrationState.OrchestrationStatus)
+                {
+                    case OrchestrationStatus.Completed:
+                    case OrchestrationStatus.Failed:
+                        // Completion of the orchestration.
+                        TraceContextBase parentTraceContext = traceContext;
+                        if (parentTraceContext.OrchestrationTraceContexts.Count >= 1)
+                        {
+                            currentTraceContextBaseOnComplete = parentTraceContext.OrchestrationTraceContexts.Pop();
+                            CorrelationTraceContext.Current = parentTraceContext;
+                        }
+                        else
+                        {
+                            currentTraceContextBaseOnComplete = TraceContextFactory.Empty;
+                        }
+
+                        break;
+                    default:
+                        currentTraceContextBaseOnComplete = TraceContextFactory.Empty;
+                        break;
+                }
+            }
+
+            return currentTraceContextBaseOnComplete;
+        }
+
+        void TrackOrchestrationRequestTelemetry(TraceContextBase traceContext, OrchestrationState orchestrationState, string operationName)
+        {
+            switch(orchestrationState.OrchestrationStatus)
+            {
+                case OrchestrationStatus.Completed:
+                case OrchestrationStatus.Failed:
+                    if (traceContext != null)
+                    {
+                        traceContext.OperationName = operationName;
+                        CorrelationTraceClient.TrackRequestTelemetry(traceContext);
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        }
+
         async Task CommitOutboundQueueMessages(
             OrchestrationSession session,
             IList<TaskMessage> outboundMessages,

@@ -63,9 +63,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableTask.SqlServer", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableTask.SqlServer.Tests", "Test\DurableTask.SqlServer.Tests\DurableTask.SqlServer.Tests.csproj", "{B835BFA6-D9BB-47C4-8594-38EAE0157BBA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Correlation.Samples", "Correlation.Samples\Correlation.Samples.csproj", "{5F88FF6A-E908-4341-89D6-FA530793077A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Correlation.Samples", "samples\Correlation.Samples\Correlation.Samples.csproj", "{5F88FF6A-E908-4341-89D6-FA530793077A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Correlation.Sample.Tests", "Correlation.Sample.Tests\Correlation.Sample.Tests.csproj", "{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Correlation.Sample.Tests", "samples\Correlation.Sample.Tests\Correlation.Sample.Tests.csproj", "{54D2FA7E-E3A4-443F-9A62-DA4B0D044EDD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

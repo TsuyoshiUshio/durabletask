@@ -4,9 +4,9 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net451</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <FileVersion>1.7.4</FileVersion>
+    <FileVersion>1.7.6</FileVersion>
     <AssemblyVersion>$(FileVersion)</AssemblyVersion>
-    <PackageVersion>1.7.4-alpha</PackageVersion>
+    <PackageVersion>1.7.6-alpha</PackageVersion>
     <IncludeSymbols>true</IncludeSymbols>
     <Description>Azure Storage provider extension for the Durable Task Framework.</Description>
     <PackageTags>Azure Task Durable Orchestration Workflow Activity Reliable AzureStorage</PackageTags>

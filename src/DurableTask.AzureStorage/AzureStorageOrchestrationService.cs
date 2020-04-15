@@ -30,6 +30,7 @@ namespace DurableTask.AzureStorage
     using DurableTask.Core;
     using DurableTask.Core.Exceptions;
     using DurableTask.Core.History;
+    using DurableTask.Core.Settings;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Blob;
     using Microsoft.WindowsAzure.Storage.Queue;
@@ -1435,7 +1436,8 @@ namespace DurableTask.AzureStorage
             CorrelationTraceClient.Propagate(
                 () =>
                 {
-                    CorrelationTraceClient.TrackRequestTelemetry(workItem.TraceContextBase);
+                    if (CorrelationSettings.Current.TaskActivityRequestTracking)
+                      CorrelationTraceClient.TrackRequestTelemetry(workItem.TraceContextBase);
                 });
 
             // Next, delete the work item queue message. This must come after enqueuing the response message.

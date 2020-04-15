@@ -37,10 +37,22 @@ namespace DurableTask.Core.Settings
         public Protocol Protocol { get; set; }
 
         /// <summary>
-        /// Suppress Distributed Tracing
-        /// default: true
+        /// Enable Distributed Tracing
+        /// default: false
         /// </summary>
         public bool EnableDistributedTracing { get; set; } = false;
+
+        /// <summary>
+        /// Track RequestTelemetry of the TaskHubClient
+        /// default: true
+        /// </summary>
+        public bool TasKHubClientRequestTracking { get; set; } = true;
+
+        /// <summary>
+        /// Track RequestTelemetry of the TaskActivity
+        /// default: true
+        /// </summary>
+        public bool TaskActivityRequestTracking { get; set; } = true;
 
         /// <summary>
         /// Current Correlation Settings

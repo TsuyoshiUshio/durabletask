@@ -28,6 +28,7 @@ namespace DurableTask.Core
         const string RequestTrackEvent = "RequestEvent";
         const string DependencyTrackEvent = "DependencyEvent";
         const string ExceptionEvent = "ExceptionEvent";
+        const string InterceptExternalTrackEvent = "InterceptExternalTrackEvent";
         static DiagnosticSource logger = new DiagnosticListener(DiagnosticSourceName);
         static IDisposable applicationInsightsSubscription = null;
         static IDisposable listenerSubscription = null;
@@ -39,10 +40,12 @@ namespace DurableTask.Core
         /// <param name="trackRequestTelemetryAction">Action to send request telemetry using <see cref="Activity"></see></param>
         /// <param name="trackDependencyTelemetryAction">Action to send telemetry for <see cref="Activity"/></param>
         /// <param name="trackExceptionAction">Action to send telemetry for exception </param>
+        /// <param name="interceptExternalTrackingAction">Action to intercept telemetry that is sent to an external system.</param>
         public static void SetUp(
             Action<TraceContextBase> trackRequestTelemetryAction, 
             Action<TraceContextBase> trackDependencyTelemetryAction, 
-            Action<Exception> trackExceptionAction)
+            Action<Exception> trackExceptionAction, 
+            Action<Activity> interceptExternalTrackingAction = null)
         {
             listenerSubscription = DiagnosticListener.AllListeners.Subscribe(
                     delegate (DiagnosticListener listener)
@@ -70,6 +73,12 @@ namespace DurableTask.Core
                                 {
                                     var e = (Exception)evt.Value;
                                     trackExceptionAction(e);
+                                }
+
+                                if (evt.Key == InterceptExternalTrackEvent && interceptExternalTrackingAction != null)
+                                {
+                                    var a = (Activity)evt.Value;
+                                    interceptExternalTrackingAction(a);
                                 }
                             });
                         }
@@ -101,6 +110,16 @@ namespace DurableTask.Core
         public static void TrackException(Exception e)
         {
             Tracking(() => logger.Write(ExceptionEvent, e));
+        }
+
+        /// <summary>
+        /// Intercept the telemetry that tracked by the external system.
+        /// Used for Unit Testing
+        /// </summary>
+        /// <param name="a">Activity object</param>
+        public static void InterceptExternalTracking(Activity a)
+        {
+            Tracking(() => logger.Write(InterceptExternalTrackEvent, a));
         }
 
         /// <summary>

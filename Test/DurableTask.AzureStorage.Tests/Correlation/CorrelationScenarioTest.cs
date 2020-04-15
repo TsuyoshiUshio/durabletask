@@ -593,6 +593,38 @@ namespace DurableTask.AzureStorage.Tests.Correlation
             Assert.AreEqual(0, actualExceptions.Count);
         }
 
+        [DataTestMethod]
+        [DataRow(Protocol.W3CTraceContext, true, 5)]
+        [DataRow(Protocol.W3CTraceContext, false, 4)]
+        [DataRow(Protocol.HttpCorrelationProtocol, true, 5)]
+        [DataRow(Protocol.HttpCorrelationProtocol, false, 4)]
+        public async Task SuppressTaskHubClientRequestTelemetry(Protocol protocol, bool enableTaskHubClientRequestTelemetry, int telemetryCount)
+        {
+            CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.EnableDistributedTracing = true;
+            CorrelationSettings.Current.TaskActivityRequestTracking = true;
+            CorrelationSettings.Current.TasKHubClientRequestTracking = enableTaskHubClientRequestTelemetry;
+            var host = new TestCorrelationOrchestrationHost();
+            List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloOrchestrator), "world", 360, false);
+            Assert.AreEqual(telemetryCount, actual.Count);
+        }
+
+        [DataTestMethod]
+        [DataRow(Protocol.W3CTraceContext, true, 5)]
+        [DataRow(Protocol.W3CTraceContext, false, 4)]
+        [DataRow(Protocol.HttpCorrelationProtocol, true, 5)]
+        [DataRow(Protocol.HttpCorrelationProtocol, false, 4)]
+        public async Task SuppressTaskActivityRequestTelemetry(Protocol protocol, bool enableTaskActivityRequestTelemetry, int telemetryCount)
+        {
+            CorrelationSettings.Current.Protocol = protocol;
+            CorrelationSettings.Current.EnableDistributedTracing = true;
+            CorrelationSettings.Current.TasKHubClientRequestTracking = true;
+            CorrelationSettings.Current.TaskActivityRequestTracking = enableTaskActivityRequestTelemetry;
+            var host = new TestCorrelationOrchestrationHost();
+            List<OperationTelemetry> actual = await host.ExecuteOrchestrationAsync(typeof(SayHelloOrchestrator), "world", 360, false);
+            Assert.AreEqual(telemetryCount, actual.Count);
+        }
+
         //[TestMethod] terminate
 
         class TestCorrelationOrchestrationHost

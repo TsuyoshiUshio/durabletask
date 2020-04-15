@@ -21,6 +21,7 @@ namespace DurableTask.Core
     using System.Threading.Tasks;
     using DurableTask.Core.History;
     using DurableTask.Core.Serializing;
+    using DurableTask.Core.Settings;
 
     /// <summary>
     ///     Client used to manage and query orchestration instances
@@ -539,7 +540,8 @@ namespace DurableTask.Core
 
             // Correlation
             CorrelationTraceClient.TrackDepencencyTelemetry(dependencyTraceContext);
-            CorrelationTraceClient.TrackRequestTelemetry(requestTraceContext);
+            if (CorrelationSettings.Current.TasKHubClientRequestTracking)
+              CorrelationTraceClient.TrackRequestTelemetry(requestTraceContext);  
         }
 
         /// <summary>

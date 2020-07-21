@@ -12,7 +12,7 @@ pool:
 jobs:
 - job: 'ParallelTesting'
   pool:
-    name: Hosted Ubuntu 1604
+    name: windows-latest
   strategy:
     parallel: 1
   displayName: Run tests in parallel
@@ -42,4 +42,4 @@ jobs:
     inputs:
       command: test
       projects: '**/DurableTask.AzureStorage.Tests.csproj'
-      arguments: '--no-build'
+      arguments: '--no-build --filter TestCategory!=DisabledInCI'

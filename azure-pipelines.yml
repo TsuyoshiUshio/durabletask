@@ -24,7 +24,7 @@ jobs:
     displayName: Build
     inputs:
       command: build
-      projects: '**/*.csproj'
+      projects: '**/DurableTask.AzureStorage.Tests.csproj'
   - task: CmdLine@2
     inputs:
       script: |

@@ -3,11 +3,10 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger:
-  - none
+trigger: none
   
-  pool:
-    vmImage: 'windows-latest'
+pool:
+  vmImage: 'windows-latest'
   
   jobs:
   - job: 'ParallelTesting'

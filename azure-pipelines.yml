@@ -34,7 +34,7 @@ jobs:
         sqllocaldb info MSSQLLocalDB
         
         "C:\Program Files (x86)\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe" start
-    enabled: false
+    enabled: true
   - task: DotNetCoreCLI@2
     displayName: Test
     inputs:
